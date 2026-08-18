@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
 import { avatarHueClass, iconForInterest, iconGradientClass, initials } from '../ui.js';
@@ -88,6 +88,9 @@ export default function Room() {
 
   return (
     <div className="page">
+      <Link to="/rooms" className="back-link">
+        <i className="ti ti-arrow-left" aria-hidden="true" /> Rooms
+      </Link>
       <div className="room-card-head" style={{ marginBottom: 2 }}>
         <div className={`icon-badge ${iconGradientClass(primaryTag)}`} style={{ width: 40, height: 40 }}>
           <i className={`ti ti-${iconForInterest(primaryTag)}`} style={{ fontSize: 19 }} aria-hidden="true" />

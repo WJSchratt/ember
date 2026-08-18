@@ -2,69 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
-import { avatarHueClass, iconForInterest, iconGradientClass, initials } from '../ui.js';
-import Countdown from '../Countdown.jsx';
-
-function RoomCard({ e, onJoin, joining }) {
-  const navigate = useNavigate();
-  const primaryTag = e.interests[0]?.name;
-
-  return (
-    <div
-      className={`card ${e.isMember ? 'hero' : ''}`}
-      onClick={() => navigate(`/events/${e.id}`)}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="room-card-head" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className={`icon-badge ${iconGradientClass(primaryTag)}`}>
-            <i className={`ti ti-${iconForInterest(primaryTag)}`} aria-hidden="true" />
-          </div>
-          <div>
-            <div className="title">{e.title}</div>
-            <p className="room-card-meta" style={{ margin: 0 }}>
-              <Countdown scheduledAt={e.scheduledAt} locked={e.locked} />
-            </p>
-          </div>
-        </div>
-        <span className={`badge ${e.locked ? 'locked' : 'open'}`}>
-          {e.memberCount}/{e.capacity}
-        </span>
-      </div>
-      {e.location && <p className="room-card-meta">📍 {e.location}</p>}
-      <div className="room-card-foot">
-        <div className="avatar-stack">
-          {e.members.slice(0, 3).map((m) => (
-            <span key={m.id} className={`avatar avatar-sm ${avatarHueClass(m.id)}`}>
-              {initials(m.displayName)}
-            </span>
-          ))}
-          {e.memberCount > 3 && (
-            <span className="avatar avatar-sm" style={{ background: 'rgba(255,255,255,0.1)', color: '#d4d4d8' }}>
-              +{e.memberCount - 3}
-            </span>
-          )}
-        </div>
-        {e.isMember ? (
-          <button className="btn btn-ghost" onClick={(ev) => ev.stopPropagation()}>
-            Open
-          </button>
-        ) : (
-          <button
-            className="btn btn-primary"
-            disabled={e.locked || joining === e.id}
-            onClick={(ev) => {
-              ev.stopPropagation();
-              onJoin(e.id);
-            }}
-          >
-            {joining === e.id ? '...' : 'Join'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+import { iconForInterest, iconGradientClass } from '../ui.js';
+import RoomCard from '../RoomCard.jsx';
 
 export default function Events() {
   const { token, user } = useAuth();
@@ -118,11 +57,14 @@ export default function Events() {
     return ['all', ...[...names].sort()];
   }, [all]);
 
-  const mine = all.filter((e) => e.isMember);
   const browsable = all.filter(
     (e) => !e.isMember && (filter === 'all' || e.interests.some((i) => i.name === filter))
   );
 
+  // Joining here uses the same tag-matching endpoint the AI "Create this" and
+  // "Check for a match" flows use — a click never bypasses eligibility, it
+  // just triggers the same match check and, on success, drops you straight
+  // into the room's chat instead of a separate confirmation step.
   async function handleJoin(eventId) {
     setJoining(eventId);
     setStatus('');
@@ -131,7 +73,7 @@ export default function Events() {
     if (res.newlyMatched.some((m) => m.id === user.id)) {
       navigate(`/events/${eventId}`);
     } else {
-      setStatus(res.reason || "Couldn't join — no shared interests with this room.");
+      setStatus(res.reason || "Couldn't join — no shared interests, the room is full, or you're already committed to another open room.");
       reload();
     }
   }
@@ -180,28 +122,23 @@ export default function Events() {
         ))}
       </div>
 
-      {browsable.length === 0 && (
-        <p className="muted" style={{ marginBottom: '1rem' }}>
-          Nothing open in this category right now.
-        </p>
-      )}
-      {browsable.map((e) => (
-        <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
-      ))}
-      {status && <p className="muted">{status}</p>}
-
       <div className="dashed-card" onClick={() => navigate('/create')}>
         <i className="ti ti-plus" aria-hidden="true" />
         <span>Start a hangout</span>
       </div>
 
-      {mine.length > 0 && (
-        <>
-          <p className="section-title">Your rooms</p>
-          {mine.map((e) => (
+      {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
+
+      {browsable.length === 0 ? (
+        <p className="muted" style={{ marginBottom: '1rem' }}>
+          Nothing open in this category right now.
+        </p>
+      ) : (
+        <div className="room-grid">
+          {browsable.map((e) => (
             <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
           ))}
-        </>
+        </div>
       )}
     </div>
   );
