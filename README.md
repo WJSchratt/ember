@@ -1,4 +1,7 @@
-# Ember (working name)
+# Roomless
+
+(repo/project name `ember` predates the rename — kept to avoid rename churn
+on the GitHub repo and Vercel projects. The product name is **Roomless**.)
 
 Fight 21st-century loneliness by matching small groups of people (max 10) into
 temporary chat rooms for a specific event, based on shared interest tags —
@@ -70,6 +73,19 @@ end-to-end working flow, not polish.
 7. **GitHub push:** couldn't create the repo via `gh` CLI (not installed) or the
    token already used for your other repos (expired). Used the GitHub REST API
    directly to create the repo instead.
+
+8. **The Events list "Join" button re-uses the matching endpoint**, it doesn't
+   bypass tag-based eligibility. Clicking Join on a browsable room calls
+   `POST /api/events/:id/match`; if you share a tag and there's a free slot
+   you're added and dropped straight into the room, otherwise you see why not
+   (no overlap, room full, or you're already committed elsewhere). This keeps
+   the one-click mockup interaction honest to the actual matching rules
+   instead of turning it into an open join-anything button.
+
+9. **Tabler Icons via CDN link** (`tabler-icons.min.css`) rather than an npm
+   icon package — matches the provided mockups' icon set with zero build
+   config; fine for a prototype, would move to a bundled package if this
+   needs to work offline or the CDN becomes a reliability concern.
 
 ## Data model
 
