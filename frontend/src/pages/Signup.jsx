@@ -31,7 +31,7 @@ export default function Signup() {
     <div className="page">
       <div style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
         <i className="ti ti-flame" style={{ fontSize: 36, color: 'var(--text-accent)' }} aria-hidden="true" />
-        <p style={{ fontWeight: 600, fontSize: 20, marginTop: 8 }}>Join Roomless</p>
+        <p style={{ fontWeight: 600, fontSize: 20, marginTop: 8 }}>Join Tether</p>
       </div>
       <form onSubmit={onSubmit}>
         <div>

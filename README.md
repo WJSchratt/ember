@@ -1,7 +1,9 @@
-# Roomless
+# Tether
 
-(repo/project name `ember` predates the rename — kept to avoid rename churn
-on the GitHub repo and Vercel projects. The product name is **Roomless**.)
+(repo/project name `ember` predates two renames now — Ember → Roomless →
+Tether — kept to avoid rename churn on the GitHub repo and Vercel project
+slugs, which would mean recreating both and breaking the live URLs below.
+The product name is **Tether**.)
 
 Fight 21st-century loneliness by matching small groups of people (max 10) into
 temporary chat rooms for a specific event, based on shared interest tags —
@@ -31,7 +33,7 @@ Two Claude-backed features (`claude-opus-5` via `@anthropic-ai/sdk`, key in
 
 - **Icebreaker:** once a room reaches its first 2 real members, Claude writes
   a one-time icebreaker referencing the event and shared tags, posted by a
-  `Roomless` bot user (`backend/src/services/ai.js` → `generateIcebreaker`,
+  `Tether` bot user (`backend/src/services/ai.js` → `generateIcebreaker`,
   wired into matching in `routes/events.js`). Failures are swallowed — a slow
   or unavailable model should never block event creation or matching.
 - **Suggested hangouts:** `GET /api/events/suggestions` asks Claude to propose
@@ -164,7 +166,7 @@ available in this environment to click through the UI)
 - **Auto-lock verified**: once `scheduled_at` passes, the room reports
   `locked: true` and posting a message returns 403
 - **AI icebreaker verified**: creating/matching a room to 2+ members posts a
-  real Claude-generated message from the `Roomless` bot, on both local dev
+  real Claude-generated message from the `Tether` bot, on both local dev
   and the live deployment
 - **AI suggestions verified**: `GET /api/events/suggestions` returns real
   Claude-generated ideas from live seed-data interest counts, and one-click

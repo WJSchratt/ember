@@ -142,7 +142,7 @@ export default function Room() {
           <div className="chat-log" ref={logRef}>
             {messages.length === 0 && <p className="muted">No messages yet — say hi.</p>}
             {messages.map((m) => {
-              const isBot = m.displayName === 'Roomless';
+              const isBot = m.displayName === 'Tether';
               return (
                 <div key={m.id} className={`chat-row ${m.userId === user.id ? 'mine' : ''}`}>
                   {m.userId !== user.id && (

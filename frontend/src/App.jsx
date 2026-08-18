@@ -31,7 +31,7 @@ export default function App() {
         {!bareRoute && (
           <div className="appbar">
             <span className="brand">
-              <i className="ti ti-flame" aria-hidden="true" /> Roomless
+              <i className="ti ti-flame" aria-hidden="true" /> Tether
             </span>
             {authed && (
               <NavLink

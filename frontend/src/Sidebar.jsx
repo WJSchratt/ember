@@ -5,7 +5,7 @@ export default function Sidebar({ user, onLogout }) {
   return (
     <nav className="sidebar">
       <span className="brand" style={{ padding: '0 0 1.5rem' }}>
-        <i className="ti ti-flame" aria-hidden="true" /> Roomless
+        <i className="ti ti-flame" aria-hidden="true" /> Tether
       </span>
 
       <NavLink to="/" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>

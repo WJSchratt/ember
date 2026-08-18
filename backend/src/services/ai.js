@@ -11,7 +11,7 @@ export async function generateIcebreaker({ title, interestNames, memberNames }) 
     messages: [
       {
         role: 'user',
-        content: `You're Roomless, the bot that kicks off small-group chat rooms for people matched by shared interests. A room just formed:
+        content: `You're Tether, the bot that kicks off small-group chat rooms for people matched by shared interests. A room just formed:
 
 Event: "${title}"
 Shared interest tags: ${interestNames.join(', ')}
@@ -62,7 +62,7 @@ export async function suggestEvents({ interestCounts, existingTitles }) {
     messages: [
       {
         role: 'user',
-        content: `Roomless matches small groups of people into temporary chat rooms for shared-interest hangouts (e.g. "Halo 3 night", "Watching the match"). Here's what the current user base is interested in, by tag and how many people have that tag: ${tagSummary}.
+        content: `Tether matches small groups of people into temporary chat rooms for shared-interest hangouts (e.g. "Halo 3 night", "Watching the match"). Here's what the current user base is interested in, by tag and how many people have that tag: ${tagSummary}.
 
 Events already scheduled (avoid near-duplicates of these): ${existingTitles.length ? existingTitles.join(', ') : 'none yet'}.
 

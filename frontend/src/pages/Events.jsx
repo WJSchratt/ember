@@ -82,10 +82,36 @@ export default function Events() {
 
   return (
     <div className="page">
+      <div className="filterbar">
+        {filterOptions.map((name) => (
+          <span
+            key={name}
+            className={`pill ${filter === name ? 'active' : ''}`}
+            onClick={() => setFilter(name)}
+          >
+            {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
+          </span>
+        ))}
+      </div>
+
+      {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
+
+      {browsable.length === 0 ? (
+        <p className="muted" style={{ marginBottom: '1.5rem' }}>
+          Nothing open in this category right now — try a different tag, or start your own below.
+        </p>
+      ) : (
+        <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
+          {browsable.map((e) => (
+            <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
+          ))}
+        </div>
+      )}
+
       {!suggestionsLoading && suggestions.length > 0 && (
         <>
           <p className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <i className="ti ti-sparkles" aria-hidden="true" /> Suggested for you
+            <i className="ti ti-sparkles" aria-hidden="true" /> AI-suggested hangouts
           </p>
           <div className="filterbar" style={{ paddingTop: 0 }}>
             {suggestions.map((s) => (
@@ -110,36 +136,10 @@ export default function Events() {
         </>
       )}
 
-      <div className="filterbar">
-        {filterOptions.map((name) => (
-          <span
-            key={name}
-            className={`pill ${filter === name ? 'active' : ''}`}
-            onClick={() => setFilter(name)}
-          >
-            {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
-          </span>
-        ))}
-      </div>
-
       <div className="dashed-card" onClick={() => navigate('/create')}>
         <i className="ti ti-plus" aria-hidden="true" />
-        <span>Start a hangout</span>
+        <span>Start your own hangout</span>
       </div>
-
-      {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
-
-      {browsable.length === 0 ? (
-        <p className="muted" style={{ marginBottom: '1rem' }}>
-          Nothing open in this category right now.
-        </p>
-      ) : (
-        <div className="room-grid">
-          {browsable.map((e) => (
-            <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

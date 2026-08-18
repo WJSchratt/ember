@@ -20,7 +20,7 @@ async function getBotUserId() {
   return botUserId;
 }
 
-// Posts a one-time AI-generated icebreaker from the Roomless bot once a room
+// Posts a one-time AI-generated icebreaker from the Tether bot once a room
 // has at least two real members. Failures are swallowed — a slow/unavailable
 // LLM should never block matching or event creation.
 async function postIcebreakerIfNeeded(eventId) {

@@ -55,12 +55,14 @@ async function migrate() {
     await pool.query(statement);
   }
 
-  // Roomless posts AI-generated icebreakers as this unlisted, unloginable bot user.
+  // Tether posts AI-generated icebreakers as this unlisted, unloginable bot
+  // user. ON CONFLICT updates display_name too so renaming the bot just
+  // means changing the literal below and re-running migrations.
   const unusableHash = await bcrypt.hash(crypto.randomUUID(), 10);
   await pool.query(
     `INSERT INTO users (email, password_hash, display_name)
-     VALUES ($1, $2, 'Roomless')
-     ON CONFLICT (email) DO NOTHING`,
+     VALUES ($1, $2, 'Tether')
+     ON CONFLICT (email) DO UPDATE SET display_name = EXCLUDED.display_name`,
     [BOT_EMAIL, unusableHash]
   );
 
