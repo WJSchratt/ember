@@ -16,6 +16,7 @@ export default function Events() {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [creatingSuggestion, setCreatingSuggestion] = useState(null);
+  const [myInterestNames, setMyInterestNames] = useState([]);
 
   async function reload() {
     const allData = await api.events(token);
@@ -25,6 +26,10 @@ export default function Events() {
 
   useEffect(() => {
     reload();
+  }, [token]);
+
+  useEffect(() => {
+    api.me(token).then((data) => setMyInterestNames(data.interests.map((i) => i.name)));
   }, [token]);
 
   useEffect(() => {
@@ -51,11 +56,16 @@ export default function Events() {
     }
   }
 
+  // Tags you're actually interested in come first, so the filter row reflects
+  // *your* profile instead of just whatever happens to have events right now.
   const filterOptions = useMemo(() => {
     const names = new Set();
     all.forEach((e) => e.interests.forEach((i) => names.add(i.name)));
-    return ['all', ...[...names].sort()];
-  }, [all]);
+    const mySet = new Set(myInterestNames);
+    const mine = [...names].filter((n) => mySet.has(n)).sort();
+    const rest = [...names].filter((n) => !mySet.has(n)).sort();
+    return ['all', ...mine, ...rest];
+  }, [all, myInterestNames]);
 
   const browsable = all.filter(
     (e) => !e.isMember && (filter === 'all' || e.interests.some((i) => i.name === filter))

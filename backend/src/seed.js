@@ -8,7 +8,9 @@ const INTERESTS = [
   'dogs', 'karaoke',
 ];
 
-// Fake users so the match -> room -> chat flow can be tested solo.
+// Fake users so the match -> room -> chat flow can be tested solo. Interests
+// are deliberately overlapping across several categories (not just gaming)
+// so AI suggestions and matching have more than one cluster to work with.
 // Password for all seed users: password123
 const TEST_USERS = [
   { email: 'alice@test.dev', displayName: 'Alice', interests: ['gaming', 'anime', 'coding'] },
@@ -17,6 +19,8 @@ const TEST_USERS = [
   { email: 'dev@test.dev', displayName: 'Dev', interests: ['gaming', 'board games', 'reading'] },
   { email: 'ellen@test.dev', displayName: 'Ellen', interests: ['soccer', 'running', 'yoga'] },
   { email: 'frank@test.dev', displayName: 'Frank', interests: ['movies', 'karaoke', 'coffee'] },
+  { email: 'grace@test.dev', displayName: 'Grace', interests: ['hiking', 'travel', 'cooking'] },
+  { email: 'hank@test.dev', displayName: 'Hank', interests: ['movies', 'board games', 'cycling'] },
 ];
 
 async function seed() {

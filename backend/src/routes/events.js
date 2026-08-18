@@ -187,22 +187,46 @@ router.get('/mine', async (req, res) => {
   res.json(await enrich(rows, req.user.id));
 });
 
-// AI-generated hangout ideas based on the aggregate interests of everyone
-// signed up, steering toward tags with more interested users so the
-// suggestion is actually matchable. Computed fresh each call, not persisted.
+// AI-generated hangout ideas. Personalized to the signed-in user's own
+// interest tags first, weighted by how many OTHER real users share each tag
+// (so a suggestion is actually matchable, not just something they like
+// alone). Falls back to community-wide top tags if the user has no
+// interests yet or none overlap with anyone else. Computed fresh each call.
 router.get('/suggestions', async (req, res) => {
   const bot = await getBotUserId();
-  const interestCountsResult = await pool.query(
-    `SELECT i.name, COUNT(*)::int AS count
+
+  const personalResult = await pool.query(
+    `SELECT i.name,
+            COUNT(*) FILTER (WHERE ui2.user_id IS NOT NULL)::int AS count
      FROM user_interests ui
      JOIN interests i ON i.id = ui.interest_id
-     WHERE ui.user_id != COALESCE($1, 0)
+     LEFT JOIN user_interests ui2
+       ON ui2.interest_id = ui.interest_id
+       AND ui2.user_id != $1
+       AND ui2.user_id != COALESCE($2, 0)
+     WHERE ui.user_id = $1
      GROUP BY i.name
-     HAVING COUNT(*) >= 2
-     ORDER BY count DESC
+     ORDER BY count DESC, i.name
      LIMIT 10`,
-    [bot]
+    [req.user.id, bot]
   );
+
+  let interestCountsResult = { rows: personalResult.rows.filter((r) => r.count > 0) };
+
+  if (interestCountsResult.rows.length === 0) {
+    interestCountsResult = await pool.query(
+      `SELECT i.name, COUNT(*)::int AS count
+       FROM user_interests ui
+       JOIN interests i ON i.id = ui.interest_id
+       WHERE ui.user_id != COALESCE($1, 0)
+       GROUP BY i.name
+       HAVING COUNT(*) >= 2
+       ORDER BY count DESC
+       LIMIT 10`,
+      [bot]
+    );
+  }
+
   if (interestCountsResult.rows.length === 0) {
     return res.json([]);
   }
