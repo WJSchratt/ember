@@ -1,6 +1,6 @@
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
-import { initials } from './ui.js';
+import { avatarHueClass, initials } from './ui.js';
 import Sidebar from './Sidebar.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
@@ -34,7 +34,11 @@ export default function App() {
               <i className="ti ti-flame" aria-hidden="true" /> Roomless
             </span>
             {authed && (
-              <NavLink to="/profile" className="avatar avatar-sm" style={{ width: 32, height: 32, fontSize: 12 }}>
+              <NavLink
+                to="/profile"
+                className={`avatar avatar-sm ${avatarHueClass(user.id)}`}
+                style={{ width: 32, height: 32, fontSize: 12 }}
+              >
                 {initials(user.displayName)}
               </NavLink>
             )}

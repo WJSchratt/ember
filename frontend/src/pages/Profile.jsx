@@ -67,16 +67,17 @@ export default function Profile() {
         Tag overlap with an event is what gets you matched into its room.
       </p>
       <div className="card">
-        {allInterests.map((i) => (
-          <span
-            key={i.id}
-            className={`tag-chip selectable ${selected.has(i.id) ? 'selected' : ''}`}
-            style={{ marginRight: 6, marginBottom: 6, display: 'inline-block' }}
-            onClick={() => toggle(i.id)}
-          >
-            {i.name}
-          </span>
-        ))}
+        <div className="tag-grid">
+          {allInterests.map((i) => (
+            <span
+              key={i.id}
+              className={`tag-chip selectable ${selected.has(i.id) ? 'selected' : ''}`}
+              onClick={() => toggle(i.id)}
+            >
+              {i.name}
+            </span>
+          ))}
+        </div>
       </div>
       <button className="btn btn-primary" onClick={save}>
         Save interests

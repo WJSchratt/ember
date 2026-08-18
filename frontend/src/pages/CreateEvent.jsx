@@ -88,16 +88,17 @@ export default function CreateEvent() {
         <div>
           <label>Interest tags (people matching these get invited)</label>
           <div className="card">
-            {allInterests.map((i) => (
-              <span
-                key={i.id}
-                className={`tag-chip selectable ${selected.has(i.id) ? 'selected' : ''}`}
-                style={{ marginRight: 6, marginBottom: 6, display: 'inline-block' }}
-                onClick={() => toggle(i.id)}
-              >
-                {i.name}
-              </span>
-            ))}
+            <div className="tag-grid">
+              {allInterests.map((i) => (
+                <span
+                  key={i.id}
+                  className={`tag-chip selectable ${selected.has(i.id) ? 'selected' : ''}`}
+                  onClick={() => toggle(i.id)}
+                >
+                  {i.name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
         {error && <div className="error">{error}</div>}

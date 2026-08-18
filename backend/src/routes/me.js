@@ -7,7 +7,7 @@ router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   const userResult = await pool.query(
-    'SELECT id, email, display_name, created_at FROM users WHERE id = $1',
+    'SELECT id, email, display_name AS "displayName", created_at AS "createdAt" FROM users WHERE id = $1',
     [req.user.id]
   );
   const interestsResult = await pool.query(
