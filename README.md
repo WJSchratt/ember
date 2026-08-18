@@ -10,6 +10,17 @@ This is a first-pass vertical slice: signup → interests → create event →
 auto-matched room → chat → auto-lock. It's rough by design — the goal was an
 end-to-end working flow, not polish.
 
+## Live
+
+- **App:** https://ember-web-three.vercel.app
+- **API:** https://ember-api-alpha.vercel.app
+- Both are Vercel projects under `walter-schratts-projects`, deployed straight
+  to production from the CLI (not connected to GitHub auto-deploy — pushing to
+  `dev` does not redeploy these; run `vercel deploy --prod` in each directory).
+- Database is a free-tier Neon Postgres, provisioned via the Vercel Marketplace
+  integration and attached only to the `ember-api` project.
+- Seed users work here too: `alice@test.dev` / `password123`, etc.
+
 ## Stack
 
 - **Backend:** Node + Express, PostgreSQL via `pg`, JWT auth, bcrypt password hashing.
@@ -25,20 +36,38 @@ end-to-end working flow, not polish.
    identical code path to a hosted Postgres in production. Data persists to
    `backend/dev-db/data/` (gitignored). To go to a real hosted Postgres (e.g. Neon
    free tier), just change `DATABASE_URL` in `.env` — nothing else changes.
+   (Production now does exactly this — see **Live** above.)
 
-2. **Room membership/lock state is derived, not stored.** A room is "locked" purely
+2. **Backend deploys as a single Vercel serverless function, not a persistent
+   server.** Same pattern as `jarvis-for-jaide`/Holly. `backend/src/app.js`
+   exports the bare Express app; `backend/src/server.js` (local dev only) is
+   the one that calls `app.listen()`. `backend/api/[...path].js` re-exports the
+   app as the serverless entry, with `backend/vercel.json` rewriting every path
+   to it — Vercel's zero-config catch-all didn't route multi-segment paths
+   (`/api/auth/login`) correctly under the auto-detected "Express" framework
+   preset, only single-segment ones, so the explicit rewrite was needed. The
+   `pg` Pool caps at 3 connections in this mode (`process.env.VERCEL` check in
+   `db.js`) since Neon's pooled connection string is meant to be hit by many
+   short-lived instances, not one big pool.
+
+3. **CORS is wide open (`origin: '*'`)** rather than locked to the frontend's
+   Vercel URL. There's no session cookie in play (JWT in an Authorization
+   header), so there's no CSRF exposure from this; tightening it later is a
+   one-line change to `CORS_ORIGIN`.
+
+4. **Room membership/lock state is derived, not stored.** A room is "locked" purely
    by checking `scheduled_at <= now()` at request time. No cron job, no stored
    status column that could drift out of sync.
 
-3. **Matching runs synchronously on event creation** (and can be re-triggered via
+5. **Matching runs synchronously on event creation** (and can be re-triggered via
    `POST /api/events/:id/match`, idempotent — only adds new eligible members, never
    removes). No job queue for v1; there's nothing here that benefits from async
    processing yet.
 
-4. **Room capacity defaults to 10 and includes the creator.** The creator auto-joins
+6. **Room capacity defaults to 10 and includes the creator.** The creator auto-joins
    their own event's room; matching fills the remaining slots.
 
-5. **GitHub push:** couldn't create the repo via `gh` CLI (not installed) or the
+7. **GitHub push:** couldn't create the repo via `gh` CLI (not installed) or the
    token already used for your other repos (expired). Used the GitHub REST API
    directly to create the repo instead.
 
@@ -101,9 +130,12 @@ available in this environment to click through the UI)
 - **Auto-lock verified**: once `scheduled_at` passes, the room reports
   `locked: true` and posting a message returns 403
 
-The React UI was built against this same API and the dev server boots and
-proxies correctly, but I did not click through it in an actual browser — do
-that before you trust it fully. Start both servers and hit http://localhost:5173.
+The same matching/one-room/lock checks above were re-run directly against the
+live Neon-backed deployment and passed. The React UI was built against this
+same API and both dev and prod servers boot and connect correctly, but I did
+not click through it in an actual browser — no browser tool was available in
+this environment. Do that before you trust it fully: locally at
+http://localhost:5173, or live at https://ember-web-three.vercel.app.
 
 ## What's stubbed out / not built
 
@@ -113,15 +145,17 @@ that before you trust it fully. Start both servers and hit http://localhost:5173
 - **No password reset, no email verification.**
 - **No rate limiting, no input sanitization beyond basic presence checks** —
   fine for a solo prototype, not fine for real users.
-- **No tests.** Everything above was verified manually via curl during the build.
-- **No production deploy.** Dev branch only, no Vercel preview was set up (wasn't
-  requested beyond "if you want one, tie it to dev" — skipped since the frontend
-  needs a live backend + Postgres to be useful, and neither is deployed yet).
+- **No tests.** Everything above was verified manually via curl, locally and
+  against the live deployment.
+- **No CI/CD.** `dev` branch pushes to GitHub don't auto-deploy — the Vercel
+  projects aren't connected to the repo, so redeploying means running
+  `vercel deploy --prod` by hand in `backend/` or `frontend/`.
 
 ## What I'd tackle next
 
-1. Real hosted Postgres (Neon free tier) instead of the local embedded one, so the
-   dev environment matches what a real deploy would look like.
+1. Connect both Vercel projects to the GitHub repo for auto-deploy on push
+   (currently manual `vercel deploy --prod`), and add a real Preview
+   environment tied to `dev` instead of deploying straight to production.
 2. WebSockets (or at least shorter polling + typing indicators) once the chat
    needs to feel more alive than a 3-second refresh.
 3. A "leave room" action — right now once matched, you're in until lock; no way
