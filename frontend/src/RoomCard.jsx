@@ -6,10 +6,22 @@ export default function RoomCard({ e, onJoin, joining }) {
   const navigate = useNavigate();
   const primaryTag = e.interests[0]?.name;
 
+  // Members go straight into the room's chat. Non-members trigger the same
+  // join attempt the button does — clicking the card used to navigate into
+  // a room you're not in, landing on a confusing "not matched yet" preview
+  // instead of doing anything useful.
+  function handleCardClick() {
+    if (e.isMember) {
+      navigate(`/events/${e.id}`);
+    } else if (!e.locked && joining !== e.id) {
+      onJoin(e.id);
+    }
+  }
+
   return (
     <div
       className={`card ${e.isMember ? 'hero' : ''}`}
-      onClick={() => navigate(`/events/${e.id}`)}
+      onClick={handleCardClick}
       style={{ cursor: 'pointer' }}
     >
       <div className="room-card-head" style={{ justifyContent: 'space-between', marginBottom: 10 }}>

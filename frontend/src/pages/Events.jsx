@@ -17,6 +17,7 @@ export default function Events() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [creatingSuggestion, setCreatingSuggestion] = useState(null);
   const [myInterestNames, setMyInterestNames] = useState([]);
+  const [search, setSearch] = useState('');
 
   async function reload() {
     const allData = await api.events(token);
@@ -58,22 +59,43 @@ export default function Events() {
     }
   }
 
-  // Tags you're actually interested in come first, so the filter row reflects
-  // *your* profile instead of just whatever happens to have events right now.
-  const filterOptions = useMemo(() => {
-    const names = new Set();
-    all.forEach((e) => e.interests.forEach((i) => names.add(i.name)));
-    const mySet = new Set(myInterestNames);
-    const mine = [...names].filter((n) => mySet.has(n)).sort();
-    const rest = [...names].filter((n) => !mySet.has(n)).sort();
-    return ['all', ...mine, ...rest];
-  }, [all, myInterestNames]);
-
   const myRooms = all.filter((e) => e.isMember && !e.locked);
   const atCap = myRooms.length >= MAX_OPEN_ROOMS;
 
-  const browsable = all.filter(
-    (e) => !e.isMember && (filter === 'all' || e.interests.some((i) => i.name === filter))
+  // The whole point of this app is tag-matched rooms, not a browse-everything
+  // feed — so what's joinable here is derived directly from your current
+  // interests. Change your interests on Profile and this list changes on the
+  // next visit to Home, because it's filtered from myInterestNames, not from
+  // a static "all events" list with a cosmetic filter bolted on top.
+  const mySet = useMemo(() => new Set(myInterestNames), [myInterestNames]);
+  const matchable = useMemo(
+    () => all.filter((e) => !e.isMember && e.interests.some((i) => mySet.has(i.name))),
+    [all, mySet]
+  );
+
+  const filterOptions = useMemo(() => {
+    const names = new Set();
+    matchable.forEach((e) => e.interests.forEach((i) => mySet.has(i.name) && names.add(i.name)));
+    return ['all', ...[...names].sort()];
+  }, [matchable, mySet]);
+
+  useEffect(() => {
+    if (!filterOptions.includes(filter)) setFilter('all');
+  }, [filterOptions, filter]);
+
+  const searching = search.trim().length > 0;
+
+  // Search looks across every open room by title, not just ones matching
+  // your interests — it's a lookup tool, separate from the interest-driven
+  // default feed. Clearing the box goes right back to that feed.
+  const searchResults = useMemo(() => {
+    if (!searching) return [];
+    const q = search.trim().toLowerCase();
+    return all.filter((e) => !e.isMember && !e.locked && e.title.toLowerCase().includes(q));
+  }, [all, search, searching]);
+
+  const browsable = matchable.filter(
+    (e) => filter === 'all' || e.interests.some((i) => i.name === filter)
   );
 
   // Joining here uses the same tag-matching endpoint the AI "Create this" and
@@ -119,57 +141,90 @@ export default function Events() {
           <p className="section-title">
             {myRooms.length === 0 ? 'Join a hangout' : 'Join one more'}
           </p>
-          <div className="filterbar">
-            {filterOptions.map((name) => (
-              <span
-                key={name}
-                className={`pill ${filter === name ? 'active' : ''}`}
-                onClick={() => setFilter(name)}
-              >
-                {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
-              </span>
-            ))}
+
+          <div className="search-row">
+            <i className="ti ti-search" aria-hidden="true" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search rooms by name..."
+            />
+            {searching && (
+              <button className="search-clear" onClick={() => setSearch('')} aria-label="Clear search">
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
 
-          {browsable.length === 0 ? (
-            <p className="muted" style={{ marginBottom: '1.5rem' }}>
-              Nothing open in this category right now — try a different tag, or start your own below.
-            </p>
-          ) : (
-            <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
-              {browsable.map((e) => (
-                <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
-              ))}
-            </div>
-          )}
-
-          {!suggestionsLoading && suggestions.length > 0 && (
-            <>
-              <p className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <i className="ti ti-sparkles" aria-hidden="true" /> AI-suggested hangouts
+          {searching ? (
+            searchResults.length === 0 ? (
+              <p className="muted" style={{ marginBottom: '1.5rem' }}>
+                No open rooms match "{search.trim()}".
               </p>
-              <div className="filterbar" style={{ paddingTop: 0 }}>
-                {suggestions.map((s) => (
-                  <div key={s.title} className="card ai-suggestion-card">
-                    <div className="room-card-head">
-                      <div className={`icon-badge ${iconGradientClass(s.interestNames[0])}`}>
-                        <i className={`ti ti-${iconForInterest(s.interestNames[0])}`} aria-hidden="true" />
-                      </div>
-                      <span className="title">{s.title}</span>
-                    </div>
-                    <p className="room-card-meta">{s.reason}</p>
-                    <button
-                      className="btn btn-primary"
-                      disabled={creatingSuggestion === s.title}
-                      onClick={() => createSuggestion(s)}
-                    >
-                      {creatingSuggestion === s.title ? '...' : 'Create this'}
-                    </button>
-                  </div>
+            ) : (
+              <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
+                {searchResults.map((e) => (
+                  <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
                 ))}
               </div>
+            )
+          ) : (
+            <>
+              <div className="filterbar">
+                {filterOptions.map((name) => (
+                  <span
+                    key={name}
+                    className={`pill ${filter === name ? 'active' : ''}`}
+                    onClick={() => setFilter(name)}
+                  >
+                    {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
+                  </span>
+                ))}
+              </div>
+
+              {browsable.length === 0 ? (
+                <p className="muted" style={{ marginBottom: '1.5rem' }}>
+                  {myInterestNames.length === 0
+                    ? 'Add some interests on your profile to see hangouts you can join.'
+                    : 'Nothing matches your interests right now — try adding more on your profile, or start your own below.'}
+                </p>
+              ) : (
+                <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
+                  {browsable.map((e) => (
+                    <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
+                  ))}
+                </div>
+              )}
+
+              {!suggestionsLoading && suggestions.length > 0 && (
+                <>
+                  <p className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="ti ti-sparkles" aria-hidden="true" /> AI-suggested hangouts
+                  </p>
+                  <div className="filterbar" style={{ paddingTop: 0 }}>
+                    {suggestions.map((s) => (
+                      <div key={s.title} className="card ai-suggestion-card">
+                        <div className="room-card-head">
+                          <div className={`icon-badge ${iconGradientClass(s.interestNames[0])}`}>
+                            <i className={`ti ti-${iconForInterest(s.interestNames[0])}`} aria-hidden="true" />
+                          </div>
+                          <span className="title">{s.title}</span>
+                        </div>
+                        <p className="room-card-meta">{s.reason}</p>
+                        <button
+                          className="btn btn-primary"
+                          disabled={creatingSuggestion === s.title}
+                          onClick={() => createSuggestion(s)}
+                        >
+                          {creatingSuggestion === s.title ? '...' : 'Create this'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </>
