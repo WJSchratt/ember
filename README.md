@@ -122,9 +122,10 @@ messages         (id, event_id, user_id, body, created_at)
 
 - Plain tag overlap. A user is eligible for an event's room if they share
   **at least one** interest tag with the event.
-- A user can only be a member of **one room whose event hasn't happened yet**
-  at a time. Once an event's `scheduled_at` passes, that user becomes eligible
-  for new rooms again.
+- A user can be a member of at most **`MAX_OPEN_ROOMS` (2) rooms whose event
+  hasn't happened yet** at a time — `backend/src/services/matching.js`.
+  `POST /api/events/:id/leave` frees a slot before the event locks; once an
+  event's `scheduled_at` passes it stops counting against the cap either way.
 - Rooms cap at `capacity` (10 by default), creator included.
 - No ranking. The matching decision itself is "do the tag sets intersect" —
   AI touches the icebreaker and event suggestions, not who gets matched.
@@ -201,11 +202,12 @@ http://localhost:5173, or live at https://ember-web-three.vercel.app.
    environment tied to `dev` instead of deploying straight to production.
 2. WebSockets (or at least shorter polling + typing indicators) once the chat
    needs to feel more alive than a 3-second refresh.
-3. A "leave room" action — right now once matched, you're in until lock; no way
-   to back out if you can't make the event.
-4. Surface *why* someone wasn't matched (no overlapping tags vs. already in
+3. Surface *why* someone wasn't matched (no overlapping tags vs. already in
    another room vs. room full) in the UI instead of a single generic reason string.
-5. Real location handling (geocoding + distance-based matching) if the product
+4. Real location handling (geocoding + distance-based matching) if the product
    direction wants in-person events to matter, not just online ones.
-6. Basic abuse prevention (rate-limit signup/login, message length caps enforced
+5. Basic abuse prevention (rate-limit signup/login, message length caps enforced
    server-side beyond "non-empty").
+6. Clicking a room card you're not a member of currently drops you into a
+   "not matched" preview of that room rather than doing anything useful —
+   probably should just attempt the same join the button does instead.
