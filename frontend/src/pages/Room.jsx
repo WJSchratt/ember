@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
+import { avatarHueClass, iconForInterest, initials } from '../ui.js';
 
 const POLL_MS = 3000;
 
@@ -80,39 +81,50 @@ export default function Room() {
     }
   }
 
-  if (!detail) return <div className="container">Loading...</div>;
+  if (!detail) return <div className="page">Loading...</div>;
   const { event, interests, members, isMember } = detail;
+  const primaryTag = interests[0]?.name;
 
   return (
-    <div className="container">
-      <h1>
-        {event.title}
-        {event.locked ? <span className="locked-badge">locked</span> : <span className="open-badge">open</span>}
-      </h1>
+    <div className="page">
+      <div className="room-card-head" style={{ marginBottom: 2 }}>
+        <i className={`ti ti-${iconForInterest(primaryTag)}`} style={{ fontSize: 22 }} aria-hidden="true" />
+        <span className="title" style={{ fontSize: 18 }}>
+          {event.title}
+        </span>
+        <span className={`badge ${event.locked ? 'locked' : 'open'}`}>{event.locked ? 'locked' : 'open'}</span>
+      </div>
       <p className="muted">{new Date(event.scheduledAt).toLocaleString()}</p>
       {event.location && <p className="muted">📍 {event.location}</p>}
-      {event.description && <p>{event.description}</p>}
+      {event.description && <p style={{ margin: '0.5rem 0' }}>{event.description}</p>}
 
-      <div className="card">
-        <div>
+      <div className="card" style={{ marginTop: '0.75rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {interests.map((i) => (
-            <span key={i.id} className="tag static">
+            <span key={i.id} className="tag-chip">
               {i.name}
             </span>
           ))}
         </div>
-        <p className="muted" style={{ marginTop: '0.5rem' }}>
-          Room: {members.length}/{event.capacity} — {members.map((m) => m.displayName).join(', ') || 'nobody yet'}
+        <div className="avatar-stack" style={{ marginBottom: 4 }}>
+          {members.map((m) => (
+            <span key={m.id} className={`avatar avatar-sm ${avatarHueClass(m.id)}`} title={m.displayName}>
+              {initials(m.displayName)}
+            </span>
+          ))}
+        </div>
+        <p className="muted">
+          {members.length}/{event.capacity} — {members.map((m) => m.displayName).join(', ') || 'nobody yet'}
         </p>
       </div>
 
       {!isMember && (
         <div className="card">
           <p className="muted">You're not matched into this room yet.</p>
-          <button className="primary" onClick={checkForMatch} disabled={event.locked}>
+          <button className="btn btn-primary" onClick={checkForMatch} disabled={event.locked}>
             Check for a match
           </button>
-          {matchStatus && <p className="muted">{matchStatus}</p>}
+          {matchStatus && <p className="muted" style={{ marginTop: 6 }}>{matchStatus}</p>}
         </div>
       )}
 
@@ -121,9 +133,14 @@ export default function Room() {
           <div className="chat-log" ref={logRef}>
             {messages.length === 0 && <p className="muted">No messages yet — say hi.</p>}
             {messages.map((m) => (
-              <div key={m.id} className={`chat-msg ${m.userId === user.id ? 'mine' : ''}`}>
-                <div className="meta">{m.displayName}</div>
-                <div className="bubble">{m.body}</div>
+              <div key={m.id} className={`chat-row ${m.userId === user.id ? 'mine' : ''}`}>
+                {m.userId !== user.id && (
+                  <span className={`avatar avatar-sm ${avatarHueClass(m.userId)}`}>{initials(m.displayName)}</span>
+                )}
+                <div className="chat-bubble">{m.body}</div>
+                {m.userId === user.id && (
+                  <span className={`avatar avatar-sm ${avatarHueClass(m.userId)}`}>{initials(m.displayName)}</span>
+                )}
               </div>
             ))}
           </div>
@@ -137,7 +154,7 @@ export default function Room() {
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Say something..."
               />
-              <button className="primary" type="submit">
+              <button className="btn btn-primary" type="submit">
                 Send
               </button>
             </form>

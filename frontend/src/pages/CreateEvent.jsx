@@ -59,9 +59,11 @@ export default function CreateEvent() {
   }
 
   return (
-    <div className="container">
-      <h1>Create an event</h1>
-      <form onSubmit={onSubmit}>
+    <div className="page">
+      <p className="section-title" style={{ fontSize: 17, color: 'var(--text-primary)', fontWeight: 600 }}>
+        Start a hangout
+      </p>
+      <form onSubmit={onSubmit} style={{ marginTop: '0.75rem' }}>
         <div>
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Halo 3 night" required />
@@ -89,7 +91,8 @@ export default function CreateEvent() {
             {allInterests.map((i) => (
               <span
                 key={i.id}
-                className={`tag ${selected.has(i.id) ? 'selected' : ''}`}
+                className={`tag-chip selectable ${selected.has(i.id) ? 'selected' : ''}`}
+                style={{ marginRight: 6, marginBottom: 6, display: 'inline-block' }}
                 onClick={() => toggle(i.id)}
               >
                 {i.name}
@@ -98,8 +101,8 @@ export default function CreateEvent() {
           </div>
         </div>
         {error && <div className="error">{error}</div>}
-        <button className="primary" type="submit" disabled={busy}>
-          {busy ? 'Creating...' : 'Create event & find a room'}
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? 'Creating...' : 'Create & find a room'}
         </button>
       </form>
     </div>

@@ -99,52 +99,45 @@ router.post('/', async (req, res) => {
   });
 });
 
-// Browse all upcoming events (not necessarily ones you're matched into).
-router.get('/', async (_req, res) => {
-  const { rows } = await pool.query(
-    `SELECT e.*, u.display_name AS creator_name,
-            (SELECT COUNT(*)::int FROM room_members rm WHERE rm.event_id = e.id) AS member_count
-     FROM events e
-     JOIN users u ON u.id = e.creator_id
-     ORDER BY e.scheduled_at ASC`
-  );
-  res.json(
-    rows.map((e) => ({
+async function enrich(rows, currentUserId) {
+  const out = [];
+  for (const e of rows) {
+    const interests = await getEventInterests(e.id);
+    const members = await getMembers(e.id);
+    out.push({
       id: e.id,
       title: e.title,
       description: e.description,
       location: e.location,
       scheduledAt: e.scheduled_at,
       capacity: e.capacity,
-      creatorName: e.creator_name,
-      memberCount: e.member_count,
+      creatorId: e.creator_id,
+      memberCount: members.length,
+      members,
+      interests,
       locked: isLocked(e.scheduled_at),
-    }))
-  );
+      isMember: members.some((m) => m.id === currentUserId),
+    });
+  }
+  return out;
+}
+
+// Browse all upcoming events (not necessarily ones you're matched into).
+router.get('/', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM events ORDER BY scheduled_at ASC');
+  res.json(await enrich(rows, req.user.id));
 });
 
 // Events the current user has been matched/invited into (their rooms).
 router.get('/mine', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT e.*, (SELECT COUNT(*)::int FROM room_members rm2 WHERE rm2.event_id = e.id) AS member_count
-     FROM events e
+    `SELECT e.* FROM events e
      JOIN room_members rm ON rm.event_id = e.id
      WHERE rm.user_id = $1
      ORDER BY e.scheduled_at ASC`,
     [req.user.id]
   );
-  res.json(
-    rows.map((e) => ({
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      location: e.location,
-      scheduledAt: e.scheduled_at,
-      capacity: e.capacity,
-      memberCount: e.member_count,
-      locked: isLocked(e.scheduled_at),
-    }))
-  );
+  res.json(await enrich(rows, req.user.id));
 });
 
 router.get('/:id', async (req, res) => {

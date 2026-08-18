@@ -27,8 +27,11 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
-      <h1>Log in</h1>
+    <div className="page">
+      <div style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
+        <i className="ti ti-flame" style={{ fontSize: 36, color: 'var(--text-accent)' }} aria-hidden="true" />
+        <p style={{ fontWeight: 600, fontSize: 20, marginTop: 8 }}>Log in to Roomless</p>
+      </div>
       <form onSubmit={onSubmit}>
         <div>
           <label>Email</label>
@@ -39,14 +42,14 @@ export default function Login() {
           <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
         </div>
         {error && <div className="error">{error}</div>}
-        <button className="primary" type="submit" disabled={busy}>
+        <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Logging in...' : 'Log in'}
         </button>
       </form>
       <p className="muted" style={{ marginTop: '1rem' }}>
         No account? <Link to="/signup">Sign up</Link>
       </p>
-      <p className="muted">
+      <p className="muted" style={{ marginTop: '1rem' }}>
         Seed test users: alice@test.dev / bob@test.dev / carla@test.dev / dev@test.dev / ellen@test.dev / frank@test.dev — password: password123
       </p>
     </div>
