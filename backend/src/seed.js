@@ -21,6 +21,11 @@ const TEST_USERS = [
   { email: 'frank@test.dev', displayName: 'Frank', interests: ['movies', 'karaoke', 'coffee'] },
   { email: 'grace@test.dev', displayName: 'Grace', interests: ['hiking', 'travel', 'cooking'] },
   { email: 'hank@test.dev', displayName: 'Hank', interests: ['movies', 'board games', 'cycling'] },
+  { email: 'ivy@test.dev', displayName: 'Ivy', interests: ['coffee', 'dogs'] },
+  { email: 'jack@test.dev', displayName: 'Jack', interests: ['live music', 'painting'] },
+  { email: 'kate@test.dev', displayName: 'Kate', interests: ['photography', 'reading'] },
+  { email: 'liam@test.dev', displayName: 'Liam', interests: ['yoga', 'basketball'] },
+  { email: 'mia@test.dev', displayName: 'Mia', interests: ['dogs', 'cooking'] },
 ];
 
 async function seed() {
