@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
 import { avatarHueClass, iconForInterest, iconGradientClass, initials } from '../ui.js';
@@ -10,11 +10,13 @@ const POLL_MS = 3000;
 export default function Room() {
   const { id } = useParams();
   const { token, user } = useAuth();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [matchStatus, setMatchStatus] = useState('');
+  const [leaving, setLeaving] = useState(false);
   const logRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +69,16 @@ export default function Room() {
         ? "You're in! Room updated."
         : res.reason || 'No new match yet.'
     );
+  }
+
+  async function leaveRoom() {
+    setLeaving(true);
+    try {
+      await api.leaveRoom(token, id);
+      navigate('/rooms');
+    } finally {
+      setLeaving(false);
+    }
   }
 
   async function send(e) {
@@ -125,6 +137,17 @@ export default function Room() {
         <p className="muted">
           {members.length}/{event.capacity} — {members.map((m) => m.displayName).join(', ') || 'nobody yet'}
         </p>
+        {isMember && (
+          <button
+            className="btn btn-ghost"
+            style={{ marginTop: 10 }}
+            onClick={leaveRoom}
+            disabled={leaving}
+          >
+            <i className="ti ti-door-exit" aria-hidden="true" style={{ marginRight: 4 }} />
+            {leaving ? 'Leaving...' : 'Leave room'}
+          </button>
+        )}
       </div>
 
       {!isMember && (

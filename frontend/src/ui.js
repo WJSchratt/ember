@@ -1,3 +1,6 @@
+// Must match backend/src/services/matching.js MAX_OPEN_ROOMS.
+export const MAX_OPEN_ROOMS = 2;
+
 const ICONS = {
   gaming: 'device-gamepad-2',
   movies: 'movie',

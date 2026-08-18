@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { runMatching } from '../services/matching.js';
+import { runMatching, countOpenRooms, MAX_OPEN_ROOMS } from '../services/matching.js';
 import { generateIcebreaker, suggestEvents } from '../services/ai.js';
 import { BOT_EMAIL } from '../botUser.js';
 
@@ -88,6 +88,11 @@ router.post('/', async (req, res) => {
   }
   if (new Date(scheduledAt) <= new Date()) {
     return res.status(400).json({ error: 'scheduledAt must be in the future' });
+  }
+  if ((await countOpenRooms(req.user.id)) >= MAX_OPEN_ROOMS) {
+    return res.status(400).json({
+      error: `You're already in ${MAX_OPEN_ROOMS} open rooms — leave one before starting or joining another.`,
+    });
   }
 
   const client = await pool.connect();
@@ -298,6 +303,21 @@ router.post('/:id/match', async (req, res) => {
   await postIcebreakerIfNeeded(eventId);
   const members = await getMembers(eventId);
   res.json({ newlyMatched: result.added, reason: result.reason, members });
+});
+
+// Leave a room you're a member of — frees up one of your MAX_OPEN_ROOMS
+// slots. Works on locked rooms too (harmless no-op for the cap, but lets
+// someone clear a past room out of their list if they want).
+router.post('/:id/leave', async (req, res) => {
+  const eventId = Number(req.params.id);
+  const result = await pool.query(
+    'DELETE FROM room_members WHERE event_id = $1 AND user_id = $2',
+    [eventId, req.user.id]
+  );
+  if (result.rowCount === 0) {
+    return res.status(404).json({ error: "You're not a member of this room" });
+  }
+  res.status(204).end();
 });
 
 router.get('/:id/messages', async (req, res) => {

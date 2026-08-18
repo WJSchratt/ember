@@ -34,6 +34,7 @@ export const api = {
   myEvents: (token) => request('/events/mine', { token }),
   event: (token, id) => request(`/events/${id}`, { token }),
   matchEvent: (token, id) => request(`/events/${id}/match`, { method: 'POST', token }),
+  leaveRoom: (token, id) => request(`/events/${id}/leave`, { method: 'POST', token }),
   messages: (token, id) => request(`/events/${id}/messages`, { token }),
   sendMessage: (token, id, body) =>
     request(`/events/${id}/messages`, { method: 'POST', body: { body }, token }),

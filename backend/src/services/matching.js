@@ -1,11 +1,14 @@
 import { pool } from '../db.js';
 
+// A user can hold at most this many *open* (not-yet-happened) room
+// memberships at once. Leaving a room (or letting one lock) frees a slot.
+export const MAX_OPEN_ROOMS = 2;
+
 // v1 matching: plain tag-overlap, no ranking/AI.
 // A user is eligible for an event's room if:
 //   - they share at least one interest tag with the event
 //   - they aren't already in this event's room
-//   - they aren't currently a member of any OTHER room whose event hasn't
-//     happened yet (the "one open/pending room at a time" rule)
+//   - they aren't already at MAX_OPEN_ROOMS open room memberships
 // Rooms fill up to the event's capacity (default 10, includes the creator).
 export async function runMatching(eventId) {
   const eventResult = await pool.query(
@@ -48,11 +51,13 @@ export async function runMatching(eventId) {
            FROM room_members rm
            JOIN events e ON e.id = rm.event_id
            WHERE e.scheduled_at > now()
+           GROUP BY rm.user_id
+           HAVING COUNT(*) >= $4
          )
      ) matched
      ORDER BY random()
      LIMIT $3`,
-    [interestIds, eventId, remainingCapacity]
+    [interestIds, eventId, remainingCapacity, MAX_OPEN_ROOMS]
   );
 
   const added = [];
@@ -66,4 +71,15 @@ export async function runMatching(eventId) {
   }
 
   return { added, reason: added.length ? null : 'No eligible users matched the tags' };
+}
+
+export async function countOpenRooms(userId) {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS count
+     FROM room_members rm
+     JOIN events e ON e.id = rm.event_id
+     WHERE rm.user_id = $1 AND e.scheduled_at > now()`,
+    [userId]
+  );
+  return rows[0].count;
 }

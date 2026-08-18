@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
-import { iconForInterest, iconGradientClass } from '../ui.js';
+import { iconForInterest, iconGradientClass, MAX_OPEN_ROOMS } from '../ui.js';
 import RoomCard from '../RoomCard.jsx';
 
 export default function Events() {
@@ -51,6 +51,8 @@ export default function Events() {
         interestIds: s.interestIds,
       });
       navigate(`/events/${data.event.id}`);
+    } catch (err) {
+      setStatus(err.message);
     } finally {
       setCreatingSuggestion(null);
     }
@@ -66,6 +68,9 @@ export default function Events() {
     const rest = [...names].filter((n) => !mySet.has(n)).sort();
     return ['all', ...mine, ...rest];
   }, [all, myInterestNames]);
+
+  const myRooms = all.filter((e) => e.isMember && !e.locked);
+  const atCap = myRooms.length >= MAX_OPEN_ROOMS;
 
   const browsable = all.filter(
     (e) => !e.isMember && (filter === 'all' || e.interests.some((i) => i.name === filter))
@@ -92,57 +97,81 @@ export default function Events() {
 
   return (
     <div className="page">
-      <div className="filterbar">
-        {filterOptions.map((name) => (
-          <span
-            key={name}
-            className={`pill ${filter === name ? 'active' : ''}`}
-            onClick={() => setFilter(name)}
-          >
-            {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
-          </span>
-        ))}
-      </div>
-
-      {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
-
-      {browsable.length === 0 ? (
-        <p className="muted" style={{ marginBottom: '1.5rem' }}>
-          Nothing open in this category right now — try a different tag, or start your own below.
-        </p>
+      <p className="section-title">Your rooms</p>
+      {myRooms.length === 0 ? (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <p className="muted">You're not in a room yet — join one below, or start your own.</p>
+        </div>
       ) : (
         <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
-          {browsable.map((e) => (
-            <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
+          {myRooms.map((e) => (
+            <RoomCard key={e.id} e={e} />
           ))}
         </div>
       )}
 
-      {!suggestionsLoading && suggestions.length > 0 && (
+      {atCap ? (
+        <p className="muted" style={{ marginBottom: '1.5rem' }}>
+          You're in {MAX_OPEN_ROOMS} rooms already — leave one (from the room or from Rooms) to join or start another.
+        </p>
+      ) : (
         <>
-          <p className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <i className="ti ti-sparkles" aria-hidden="true" /> AI-suggested hangouts
+          <p className="section-title">
+            {myRooms.length === 0 ? 'Join a hangout' : 'Join one more'}
           </p>
-          <div className="filterbar" style={{ paddingTop: 0 }}>
-            {suggestions.map((s) => (
-              <div key={s.title} className="card ai-suggestion-card">
-                <div className="room-card-head">
-                  <div className={`icon-badge ${iconGradientClass(s.interestNames[0])}`}>
-                    <i className={`ti ti-${iconForInterest(s.interestNames[0])}`} aria-hidden="true" />
-                  </div>
-                  <span className="title">{s.title}</span>
-                </div>
-                <p className="room-card-meta">{s.reason}</p>
-                <button
-                  className="btn btn-primary"
-                  disabled={creatingSuggestion === s.title}
-                  onClick={() => createSuggestion(s)}
-                >
-                  {creatingSuggestion === s.title ? '...' : 'Create this'}
-                </button>
-              </div>
+          <div className="filterbar">
+            {filterOptions.map((name) => (
+              <span
+                key={name}
+                className={`pill ${filter === name ? 'active' : ''}`}
+                onClick={() => setFilter(name)}
+              >
+                {name === 'all' ? 'All' : name[0].toUpperCase() + name.slice(1)}
+              </span>
             ))}
           </div>
+
+          {status && <p className="muted" style={{ marginBottom: '0.75rem' }}>{status}</p>}
+
+          {browsable.length === 0 ? (
+            <p className="muted" style={{ marginBottom: '1.5rem' }}>
+              Nothing open in this category right now — try a different tag, or start your own below.
+            </p>
+          ) : (
+            <div className="room-grid" style={{ marginBottom: '1.5rem' }}>
+              {browsable.map((e) => (
+                <RoomCard key={e.id} e={e} onJoin={handleJoin} joining={joining} />
+              ))}
+            </div>
+          )}
+
+          {!suggestionsLoading && suggestions.length > 0 && (
+            <>
+              <p className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className="ti ti-sparkles" aria-hidden="true" /> AI-suggested hangouts
+              </p>
+              <div className="filterbar" style={{ paddingTop: 0 }}>
+                {suggestions.map((s) => (
+                  <div key={s.title} className="card ai-suggestion-card">
+                    <div className="room-card-head">
+                      <div className={`icon-badge ${iconGradientClass(s.interestNames[0])}`}>
+                        <i className={`ti ti-${iconForInterest(s.interestNames[0])}`} aria-hidden="true" />
+                      </div>
+                      <span className="title">{s.title}</span>
+                    </div>
+                    <p className="room-card-meta">{s.reason}</p>
+                    <button
+                      className="btn btn-primary"
+                      disabled={creatingSuggestion === s.title}
+                      onClick={() => createSuggestion(s)}
+                    >
+                      {creatingSuggestion === s.title ? '...' : 'Create this'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 
