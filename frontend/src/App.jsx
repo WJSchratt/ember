@@ -23,16 +23,18 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="appbar">
-        <span className="brand">
-          <i className="ti ti-flame" aria-hidden="true" /> Roomless
-        </span>
-        {authed && (
-          <NavLink to="/profile" className="avatar avatar-sm" style={{ width: 32, height: 32, fontSize: 12 }}>
-            {initials(user.displayName)}
-          </NavLink>
-        )}
-      </div>
+      {!bareRoute && (
+        <div className="appbar">
+          <span className="brand">
+            <i className="ti ti-flame" aria-hidden="true" /> Roomless
+          </span>
+          {authed && (
+            <NavLink to="/profile" className="avatar avatar-sm" style={{ width: 32, height: 32, fontSize: 12 }}>
+              {initials(user.displayName)}
+            </NavLink>
+          )}
+        </div>
+      )}
 
       <Routes>
         <Route path="/login" element={<Login />} />

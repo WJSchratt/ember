@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
-import { avatarHueClass, iconForInterest, initials } from '../ui.js';
+import { avatarHueClass, iconForInterest, iconGradientClass, initials } from '../ui.js';
+import Countdown from '../Countdown.jsx';
 
 const POLL_MS = 3000;
 
@@ -88,13 +89,18 @@ export default function Room() {
   return (
     <div className="page">
       <div className="room-card-head" style={{ marginBottom: 2 }}>
-        <i className={`ti ti-${iconForInterest(primaryTag)}`} style={{ fontSize: 22 }} aria-hidden="true" />
+        <div className={`icon-badge ${iconGradientClass(primaryTag)}`} style={{ width: 40, height: 40 }}>
+          <i className={`ti ti-${iconForInterest(primaryTag)}`} style={{ fontSize: 19 }} aria-hidden="true" />
+        </div>
         <span className="title" style={{ fontSize: 18 }}>
           {event.title}
         </span>
         <span className={`badge ${event.locked ? 'locked' : 'open'}`}>{event.locked ? 'locked' : 'open'}</span>
       </div>
-      <p className="muted">{new Date(event.scheduledAt).toLocaleString()}</p>
+      <p className="muted">
+        {new Date(event.scheduledAt).toLocaleString()} ·{' '}
+        <Countdown scheduledAt={event.scheduledAt} locked={event.locked} />
+      </p>
       {event.location && <p className="muted">📍 {event.location}</p>}
       {event.description && <p style={{ margin: '0.5rem 0' }}>{event.description}</p>}
 
@@ -132,17 +138,24 @@ export default function Room() {
         <div className="card">
           <div className="chat-log" ref={logRef}>
             {messages.length === 0 && <p className="muted">No messages yet — say hi.</p>}
-            {messages.map((m) => (
-              <div key={m.id} className={`chat-row ${m.userId === user.id ? 'mine' : ''}`}>
-                {m.userId !== user.id && (
-                  <span className={`avatar avatar-sm ${avatarHueClass(m.userId)}`}>{initials(m.displayName)}</span>
-                )}
-                <div className="chat-bubble">{m.body}</div>
-                {m.userId === user.id && (
-                  <span className={`avatar avatar-sm ${avatarHueClass(m.userId)}`}>{initials(m.displayName)}</span>
-                )}
-              </div>
-            ))}
+            {messages.map((m) => {
+              const isBot = m.displayName === 'Roomless';
+              return (
+                <div key={m.id} className={`chat-row ${m.userId === user.id ? 'mine' : ''}`}>
+                  {m.userId !== user.id && (
+                    <span className={`avatar avatar-sm ${isBot ? '' : avatarHueClass(m.userId)}`} style={isBot ? { background: 'var(--fill-primary)', color: 'var(--on-primary)' } : undefined}>
+                      {isBot ? <i className="ti ti-flame" style={{ fontSize: 11 }} aria-hidden="true" /> : initials(m.displayName)}
+                    </span>
+                  )}
+                  <div className="chat-bubble" style={isBot ? { fontStyle: 'italic', color: 'var(--text-secondary)' } : undefined}>
+                    {m.body}
+                  </div>
+                  {m.userId === user.id && (
+                    <span className={`avatar avatar-sm ${avatarHueClass(m.userId)}`}>{initials(m.displayName)}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
           {error && <div className="error">{error}</div>}
           {event.locked ? (

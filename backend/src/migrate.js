@@ -1,4 +1,7 @@
+import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import { pool } from './db.js';
+import { BOT_EMAIL } from './botUser.js';
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -51,6 +54,16 @@ async function migrate() {
   for (const statement of statements) {
     await pool.query(statement);
   }
+
+  // Roomless posts AI-generated icebreakers as this unlisted, unloginable bot user.
+  const unusableHash = await bcrypt.hash(crypto.randomUUID(), 10);
+  await pool.query(
+    `INSERT INTO users (email, password_hash, display_name)
+     VALUES ($1, $2, 'Roomless')
+     ON CONFLICT (email) DO NOTHING`,
+    [BOT_EMAIL, unusableHash]
+  );
+
   console.log('Migrations complete.');
   await pool.end();
 }

@@ -30,6 +30,7 @@ export const api = {
   interests: () => request('/interests'),
   createEvent: (token, body) => request('/events', { method: 'POST', body, token }),
   events: (token) => request('/events', { token }),
+  suggestions: (token) => request('/events/suggestions', { token }),
   myEvents: (token) => request('/events/mine', { token }),
   event: (token, id) => request(`/events/${id}`, { token }),
   matchEvent: (token, id) => request(`/events/${id}/match`, { method: 'POST', token }),

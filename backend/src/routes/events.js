@@ -2,12 +2,58 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { runMatching } from '../services/matching.js';
+import { generateIcebreaker, suggestEvents } from '../services/ai.js';
+import { BOT_EMAIL } from '../botUser.js';
 
 const router = Router();
 router.use(requireAuth);
 
 function isLocked(scheduledAt) {
   return new Date(scheduledAt) <= new Date();
+}
+
+let botUserId = null;
+async function getBotUserId() {
+  if (botUserId) return botUserId;
+  const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [BOT_EMAIL]);
+  botUserId = rows[0]?.id || null;
+  return botUserId;
+}
+
+// Posts a one-time AI-generated icebreaker from the Roomless bot once a room
+// has at least two real members. Failures are swallowed — a slow/unavailable
+// LLM should never block matching or event creation.
+async function postIcebreakerIfNeeded(eventId) {
+  try {
+    const bot = await getBotUserId();
+    if (!bot) return;
+
+    const already = await pool.query(
+      'SELECT 1 FROM messages WHERE event_id = $1 AND user_id = $2',
+      [eventId, bot]
+    );
+    if (already.rows.length > 0) return;
+
+    const members = await getMembers(eventId);
+    const realMembers = members.filter((m) => m.id !== bot);
+    if (realMembers.length < 2) return;
+
+    const eventResult = await pool.query('SELECT title FROM events WHERE id = $1', [eventId]);
+    const interests = await getEventInterests(eventId);
+
+    const text = await generateIcebreaker({
+      title: eventResult.rows[0].title,
+      interestNames: interests.map((i) => i.name),
+      memberNames: realMembers.map((m) => m.displayName),
+    });
+
+    await pool.query(
+      'INSERT INTO messages (event_id, user_id, body) VALUES ($1, $2, $3)',
+      [eventId, bot, text]
+    );
+  } catch (err) {
+    console.error('Icebreaker generation failed:', err.message);
+  }
 }
 
 async function getEventInterests(eventId) {
@@ -77,6 +123,7 @@ router.post('/', async (req, res) => {
   }
 
   const matchResult = await runMatching(eventId);
+  await postIcebreakerIfNeeded(eventId);
 
   const eventResult = await pool.query('SELECT * FROM events WHERE id = $1', [eventId]);
   const event = eventResult.rows[0];
@@ -140,6 +187,56 @@ router.get('/mine', async (req, res) => {
   res.json(await enrich(rows, req.user.id));
 });
 
+// AI-generated hangout ideas based on the aggregate interests of everyone
+// signed up, steering toward tags with more interested users so the
+// suggestion is actually matchable. Computed fresh each call, not persisted.
+router.get('/suggestions', async (req, res) => {
+  const bot = await getBotUserId();
+  const interestCountsResult = await pool.query(
+    `SELECT i.name, COUNT(*)::int AS count
+     FROM user_interests ui
+     JOIN interests i ON i.id = ui.interest_id
+     WHERE ui.user_id != COALESCE($1, 0)
+     GROUP BY i.name
+     HAVING COUNT(*) >= 2
+     ORDER BY count DESC
+     LIMIT 10`,
+    [bot]
+  );
+  if (interestCountsResult.rows.length === 0) {
+    return res.json([]);
+  }
+
+  const existingTitlesResult = await pool.query(
+    'SELECT title FROM events WHERE scheduled_at > now() ORDER BY scheduled_at LIMIT 20'
+  );
+
+  let suggestions;
+  try {
+    suggestions = await suggestEvents({
+      interestCounts: interestCountsResult.rows,
+      existingTitles: existingTitlesResult.rows.map((r) => r.title),
+    });
+  } catch (err) {
+    console.error('Event suggestion generation failed:', err.message);
+    return res.json([]);
+  }
+
+  const allInterests = await pool.query('SELECT id, name FROM interests');
+  const byName = new Map(allInterests.rows.map((i) => [i.name.toLowerCase(), i.id]));
+
+  const withIds = suggestions
+    .map((s) => ({
+      title: s.title,
+      reason: s.reason,
+      interestIds: s.tags.map((t) => byName.get(t.toLowerCase())).filter(Boolean),
+      interestNames: s.tags.filter((t) => byName.has(t.toLowerCase())),
+    }))
+    .filter((s) => s.interestIds.length > 0);
+
+  res.json(withIds);
+});
+
 router.get('/:id', async (req, res) => {
   const eventId = Number(req.params.id);
   const { rows } = await pool.query('SELECT * FROM events WHERE id = $1', [eventId]);
@@ -174,6 +271,7 @@ router.post('/:id/match', async (req, res) => {
   if (rows.length === 0) return res.status(404).json({ error: 'Event not found' });
 
   const result = await runMatching(eventId);
+  await postIcebreakerIfNeeded(eventId);
   const members = await getMembers(eventId);
   res.json({ newlyMatched: result.added, reason: result.reason, members });
 });
