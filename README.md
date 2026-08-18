@@ -24,10 +24,27 @@ end-to-end working flow, not polish.
   integration and attached only to the `ember-api` project.
 - Seed users work here too: `alice@test.dev` / `password123`, etc.
 
+## AI
+
+Two Claude-backed features (`claude-opus-5` via `@anthropic-ai/sdk`, key in
+`ANTHROPIC_API_KEY`, scoped to this project only):
+
+- **Icebreaker:** once a room reaches its first 2 real members, Claude writes
+  a one-time icebreaker referencing the event and shared tags, posted by a
+  `Roomless` bot user (`backend/src/services/ai.js` → `generateIcebreaker`,
+  wired into matching in `routes/events.js`). Failures are swallowed — a slow
+  or unavailable model should never block event creation or matching.
+- **Suggested hangouts:** `GET /api/events/suggestions` asks Claude to propose
+  event ideas from the aggregate interest tags of everyone signed up
+  (structured-output JSON, `output_config.format`), weighted toward tags with
+  more interested users so the suggestion is actually matchable. Shown on the
+  Events page with a one-click "Create this" that pre-fills and creates the
+  event through the normal endpoint — no bypass of tag-based matching.
+
 ## Stack
 
 - **Backend:** Node + Express, PostgreSQL via `pg`, JWT auth, bcrypt password hashing.
-- **Frontend:** React (Vite), React Router, plain CSS. No UI kit.
+- **Frontend:** React (Vite), React Router, plain CSS (no UI kit), Inter font + Tabler icon font.
 - **Chat:** polling (every 3s), not WebSockets — simplest thing that works for a prototype.
 
 ## Architecture decisions made without asking (noted per your instructions)
@@ -107,7 +124,8 @@ messages         (id, event_id, user_id, body, created_at)
   at a time. Once an event's `scheduled_at` passes, that user becomes eligible
   for new rooms again.
 - Rooms cap at `capacity` (10 by default), creator included.
-- No ranking, no AI — just "do the tag sets intersect."
+- No ranking. The matching decision itself is "do the tag sets intersect" —
+  AI touches the icebreaker and event suggestions, not who gets matched.
 
 ## Running it locally
 
@@ -145,6 +163,12 @@ available in this environment to click through the UI)
 - Chat is membership-gated (403 for non-members) both for reading and posting
 - **Auto-lock verified**: once `scheduled_at` passes, the room reports
   `locked: true` and posting a message returns 403
+- **AI icebreaker verified**: creating/matching a room to 2+ members posts a
+  real Claude-generated message from the `Roomless` bot, on both local dev
+  and the live deployment
+- **AI suggestions verified**: `GET /api/events/suggestions` returns real
+  Claude-generated ideas from live seed-data interest counts, and one-click
+  "Create this" round-trips through normal event creation + matching
 
 The same matching/one-room/lock checks above were re-run directly against the
 live Neon-backed deployment and passed. The React UI was built against this
@@ -157,7 +181,8 @@ http://localhost:5173, or live at https://ember-web-three.vercel.app.
 
 - **Location field** is stored and displayed but does nothing (no maps, no
   geo-matching) — explicitly deferred per the spec.
-- **No AI/ranked matching** — pure tag overlap, as specified for v1.
+- **Matching itself is still pure tag overlap** — AI writes the icebreaker
+  and proposes event ideas, but does not decide who gets matched into a room.
 - **No password reset, no email verification.**
 - **No rate limiting, no input sanitization beyond basic presence checks** —
   fine for a solo prototype, not fine for real users.
