@@ -1,0 +1,37 @@
+const BASE = '/api';
+
+async function request(path, { method = 'GET', body, token } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 204) return null;
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+export const api = {
+  signup: (body) => request('/auth/signup', { method: 'POST', body }),
+  login: (body) => request('/auth/login', { method: 'POST', body }),
+  me: (token) => request('/me', { token }),
+  updateMyInterests: (token, interestIds) =>
+    request('/me/interests', { method: 'PUT', body: { interestIds }, token }),
+  interests: () => request('/interests'),
+  createEvent: (token, body) => request('/events', { method: 'POST', body, token }),
+  events: (token) => request('/events', { token }),
+  myEvents: (token) => request('/events/mine', { token }),
+  event: (token, id) => request(`/events/${id}`, { token }),
+  matchEvent: (token, id) => request(`/events/${id}/match`, { method: 'POST', token }),
+  messages: (token, id) => request(`/events/${id}/messages`, { token }),
+  sendMessage: (token, id, body) =>
+    request(`/events/${id}/messages`, { method: 'POST', body: { body }, token }),
+};
