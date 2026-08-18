@@ -1,4 +1,6 @@
-const BASE = '/api';
+// In local dev this stays '/api' and Vite proxies it to localhost:4000.
+// In production it points at the deployed ember-api Vercel project.
+const BASE = `${import.meta.env.VITE_API_URL || ''}/api`;
 
 async function request(path, { method = 'GET', body, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
