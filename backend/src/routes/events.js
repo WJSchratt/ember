@@ -331,15 +331,70 @@ router.get('/:id/typing', async (req, res) => {
 
 // Re-run matching for an event (e.g. after new users sign up). Idempotent —
 // only adds new eligible members, up to capacity.
+// "Join" from the UI lands here. It adds the requesting user to the room
+// (subject to the same rules event creation enforces: room not locked, tag
+// overlap, room not full, and the caller under MAX_OPEN_ROOMS open rooms),
+// then tops the room up with other eligible users like it did before.
 router.post('/:id/match', async (req, res) => {
   const eventId = Number(req.params.id);
-  const { rows } = await pool.query('SELECT id FROM events WHERE id = $1', [eventId]);
+  const { rows } = await pool.query(
+    'SELECT id, scheduled_at, capacity FROM events WHERE id = $1',
+    [eventId]
+  );
   if (rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+  const event = rows[0];
+
+  const membership = await pool.query(
+    'SELECT 1 FROM room_members WHERE event_id = $1 AND user_id = $2',
+    [eventId, req.user.id]
+  );
+  const alreadyIn = membership.rows.length > 0;
+
+  if (!alreadyIn) {
+    if (isLocked(event.scheduled_at)) {
+      return res.status(400).json({ error: 'This room has already locked.' });
+    }
+
+    if ((await countOpenRooms(req.user.id)) >= MAX_OPEN_ROOMS) {
+      return res.status(400).json({
+        error: `You're already in ${MAX_OPEN_ROOMS} open rooms — leave one before joining another.`,
+      });
+    }
+
+    const overlap = await pool.query(
+      `SELECT 1 FROM event_interests ei
+       JOIN user_interests ui ON ui.interest_id = ei.interest_id
+       WHERE ei.event_id = $1 AND ui.user_id = $2
+       LIMIT 1`,
+      [eventId, req.user.id]
+    );
+    if (overlap.rows.length === 0) {
+      return res.status(400).json({ error: "This room's tags don't match your interests." });
+    }
+
+    const count = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM room_members WHERE event_id = $1',
+      [eventId]
+    );
+    if (count.rows[0].count >= event.capacity) {
+      return res.status(400).json({ error: 'This room is full.' });
+    }
+
+    await pool.query(
+      'INSERT INTO room_members (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [eventId, req.user.id]
+    );
+  }
 
   const result = await runMatching(eventId);
   await postIcebreakerIfNeeded(eventId);
   const members = await getMembers(eventId);
-  res.json({ newlyMatched: result.added, reason: result.reason, members });
+
+  const newlyMatched = alreadyIn
+    ? result.added
+    : [{ id: req.user.id, displayName: req.user.displayName }, ...result.added];
+
+  res.json({ newlyMatched, reason: result.reason, members });
 });
 
 // Leave a room you're a member of — frees up one of your MAX_OPEN_ROOMS

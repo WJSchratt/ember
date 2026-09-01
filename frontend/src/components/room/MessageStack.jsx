@@ -16,11 +16,11 @@ export default function MessageStack({ messages, currentUserId, typingUsers, loa
 
   return (
     <div className="stack" ref={stackRef}>
-      {loading && <div className="system-row">loading messages...</div>}
+      {loading && <div className="system-row">Loading messages…</div>}
       {!loading && messages.length === 0 && (
-        <div className="system-row">room formed - say hi to kick things off</div>
+        <div className="system-row">This room just formed — say hi to kick things off.</div>
       )}
-      {!loading && messages.length > 0 && <div className="system-row">room formed - open for a little while</div>}
+      {!loading && messages.length > 0 && <div className="system-row">Room open — jump in.</div>}
 
       {messages.map((m) => {
         const isBot = m.displayName === 'Tether';

@@ -43,8 +43,10 @@ export default function FuseTimer({ scheduledAt, createdAt, locked }) {
         />
       </div>
       <div className="fuse-label">
-        <span>{locked || remainingMs <= 0 ? 'closed' : formatRemaining(remainingMs)}</span>
-        <span>{locked || remainingMs <= 0 ? 'room closed' : 'room closes when it starts, make it count'}</span>
+        <span className="fuse-count">
+          {locked || remainingMs <= 0 ? 'Closed' : `${formatRemaining(remainingMs)} left`}
+        </span>
+        <span>{locked || remainingMs <= 0 ? 'this room has ended' : 'closes when the event starts'}</span>
       </div>
     </div>
   );

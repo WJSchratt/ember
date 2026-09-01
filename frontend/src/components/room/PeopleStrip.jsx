@@ -7,7 +7,11 @@ export default function PeopleStrip({ members, currentUserId }) {
         <span
           key={m.id}
           className="p-avatar"
-          style={{ background: m.id === currentUserId ? 'var(--accent)' : avatarColor(m.id) }}
+          style={
+            m.id === currentUserId
+              ? { background: 'var(--grad-accent)', color: '#fff' }
+              : { background: avatarColor(m.id) }
+          }
           title={m.displayName}
         >
           {initials(m.displayName)}
