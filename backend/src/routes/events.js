@@ -282,6 +282,7 @@ router.get('/:id', async (req, res) => {
       description: event.description,
       location: event.location,
       scheduledAt: event.scheduled_at,
+      createdAt: event.created_at,
       capacity: event.capacity,
       creatorId: event.creator_id,
       locked: isLocked(event.scheduled_at),
@@ -290,6 +291,42 @@ router.get('/:id', async (req, res) => {
     members,
     isMember: members.some((m) => m.id === req.user.id),
   });
+});
+
+// Ping that the current user is actively composing. Expires itself via
+// typing_until so a client that goes away silently stops "typing" without
+// needing an explicit stop event.
+router.post('/:id/typing', async (req, res) => {
+  const eventId = Number(req.params.id);
+  const result = await pool.query(
+    `UPDATE room_members SET typing_until = now() + interval '3 seconds'
+     WHERE event_id = $1 AND user_id = $2`,
+    [eventId, req.user.id]
+  );
+  if (result.rowCount === 0) {
+    return res.status(403).json({ error: 'You are not a member of this room' });
+  }
+  res.status(204).end();
+});
+
+router.get('/:id/typing', async (req, res) => {
+  const eventId = Number(req.params.id);
+  const membership = await pool.query(
+    'SELECT 1 FROM room_members WHERE event_id = $1 AND user_id = $2',
+    [eventId, req.user.id]
+  );
+  if (membership.rows.length === 0) {
+    return res.status(403).json({ error: 'You are not a member of this room' });
+  }
+
+  const { rows } = await pool.query(
+    `SELECT u.id, u.display_name AS "displayName"
+     FROM room_members rm
+     JOIN users u ON u.id = rm.user_id
+     WHERE rm.event_id = $1 AND rm.typing_until > now() AND rm.user_id != $2`,
+    [eventId, req.user.id]
+  );
+  res.json(rows);
 });
 
 // Re-run matching for an event (e.g. after new users sign up). Idempotent —

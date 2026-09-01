@@ -38,4 +38,6 @@ export const api = {
   messages: (token, id) => request(`/events/${id}/messages`, { token }),
   sendMessage: (token, id, body) =>
     request(`/events/${id}/messages`, { method: 'POST', body: { body }, token }),
+  typingUsers: (token, id) => request(`/events/${id}/typing`, { token }),
+  pingTyping: (token, id) => request(`/events/${id}/typing`, { method: 'POST', token }),
 };

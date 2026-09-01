@@ -1,0 +1,140 @@
+/* Scoped under .room-v4 so these custom properties and class names never
+   leak into the rest of the app's dark theme (index.css owns global :root). */
+.room-v4 {
+  --bg: #F5F4F0;
+  --ink: #111110;
+  --muted: #7A776F;
+  --line: #DEDBD2;
+  --accent: #D6FF3F;
+  --accent-ink: #1D2600;
+  --card: #FFFFFF;
+
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.room-v4 .display { font-family: 'Space Grotesk', sans-serif; }
+
+.room-v4 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 20px 20px 0; }
+.room-v4 .room-id-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.room-v4 .room-name { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.room-v4 .spark-pill {
+  font-family: 'Space Grotesk', monospace; font-size: 11px; color: var(--accent-ink);
+  background: var(--accent); padding: 4px 10px; border-radius: 100px; font-weight: 600;
+}
+.room-v4 .room-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.room-v4 .leave-btn {
+  background: transparent; border: 1px solid var(--ink); color: var(--ink);
+  padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer;
+  flex-shrink: 0;
+}
+.room-v4 .leave-btn:hover { background: var(--ink); color: var(--bg); }
+.room-v4 .leave-btn:disabled { opacity: 0.5; cursor: default; }
+
+.room-v4 .fuse-wrap { padding: 14px 20px 0; }
+.room-v4 .fuse-track { height: 3px; background: var(--line); }
+.room-v4 .fuse-fill { height: 100%; background: var(--ink); transition: width 1s linear; }
+.room-v4 .fuse-fill.closed { background: var(--muted); }
+.room-v4 .fuse-label {
+  display: flex; justify-content: space-between; font-size: 11px; color: var(--muted);
+  margin-top: 8px; font-family: 'Space Grotesk', monospace; letter-spacing: 0.02em; gap: 8px;
+}
+
+.room-v4 .people-strip { display: flex; align-items: center; gap: 0; padding: 14px 20px 0; flex-wrap: wrap; }
+.room-v4 .p-avatar {
+  width: 28px; height: 28px; border-radius: 3px; margin-left: -6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 11px; color: var(--ink);
+  border: 2px solid var(--bg);
+}
+.room-v4 .p-avatar:first-child { margin-left: 0; }
+.room-v4 .people-strip .count { font-size: 12px; color: var(--muted); margin-left: 12px; }
+
+.room-v4 .stack {
+  flex: 1; overflow-y: auto; padding: 14px 20px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 48vh; min-height: 160px;
+}
+.room-v4 .stack::-webkit-scrollbar { width: 5px; }
+.room-v4 .stack::-webkit-scrollbar-thumb { background: var(--line); }
+
+.room-v4 .row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.room-v4 .row:last-child { border-bottom: none; }
+.room-v4 .row-avatar {
+  width: 30px; height: 30px; border-radius: 3px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 12px; color: var(--ink);
+}
+.room-v4 .row-body { flex: 1; min-width: 0; }
+.room-v4 .row-meta { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.room-v4 .row-name { font-size: 13px; font-weight: 600; }
+.room-v4 .row-time { font-size: 11px; color: var(--muted); font-family: 'Space Grotesk', monospace; }
+.room-v4 .row-text { font-size: 14.5px; line-height: 1.55; color: var(--ink); margin-top: 2px; overflow-wrap: anywhere; }
+.room-v4 .row-text.bot-text { font-style: italic; color: var(--muted); }
+
+.room-v4 .row.me .row-avatar { background: var(--accent) !important; }
+
+.room-v4 .typing-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+.room-v4 .typing-dots { display: flex; gap: 4px; align-items: center; }
+.room-v4 .typing-dots span {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--muted);
+  animation: room-v4-bounce 1.2s infinite ease-in-out;
+}
+.room-v4 .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.room-v4 .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes room-v4-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes room-v4-slideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.room-v4 .row.new { animation: room-v4-slideIn 0.25s ease; }
+
+.room-v4 .system-row {
+  text-align: center; font-size: 11px; color: var(--muted); padding: 6px 0;
+  font-family: 'Space Grotesk', monospace; letter-spacing: 0.03em;
+}
+
+.room-v4 .composer { padding: 14px 20px 20px; }
+.room-v4 .composer-inner {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--card); border: 1px solid var(--ink); border-radius: 4px;
+  padding: 4px 4px 4px 16px;
+}
+.room-v4 .composer-inner.disabled { opacity: 0.6; }
+.room-v4 .composer-inner input {
+  flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px;
+  font-family: 'Inter', sans-serif; color: var(--ink); padding: 10px 0; min-width: 0;
+}
+.room-v4 .composer-inner input::placeholder { color: var(--muted); }
+.room-v4 .send-btn {
+  background: var(--accent); color: var(--accent-ink); border: none; border-radius: 3px;
+  padding: 0 18px; height: 38px; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; flex-shrink: 0;
+}
+.room-v4 .send-btn:hover { background: #C4EF1F; }
+.room-v4 .send-btn:disabled { background: var(--line); color: var(--muted); cursor: default; }
+
+.room-v4 .offline-banner {
+  background: var(--ink); color: var(--bg); font-size: 11px; font-weight: 600;
+  text-align: center; padding: 6px; font-family: 'Space Grotesk', monospace; letter-spacing: 0.03em;
+}
+
+@media (max-width: 640px) {
+  .room-v4 .topbar { padding: 16px 14px 0; flex-direction: column; }
+  .room-v4 .leave-btn { align-self: flex-start; }
+  .room-v4 .fuse-wrap { padding: 12px 14px 0; }
+  .room-v4 .people-strip { padding: 12px 14px 0; }
+  .room-v4 .stack { padding: 12px 14px 14px; max-height: 42vh; }
+  .room-v4 .composer { padding: 12px 14px 16px; }
+  .room-v4 .room-name { font-size: 18px; }
+}

@@ -41,6 +41,9 @@ const statements = [
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (event_id, user_id)
   )`,
+  // Typing state lives here (not in-process memory) because the backend runs
+  // as a stateless Vercel function - Postgres is the only shared state.
+  `ALTER TABLE room_members ADD COLUMN IF NOT EXISTS typing_until TIMESTAMPTZ`,
   `CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
