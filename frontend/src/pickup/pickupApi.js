@@ -60,3 +60,35 @@ export function saveSpot(spot) {
 export function removeSpot(id) {
   localStorage.setItem(KEY, JSON.stringify(mySpots().filter((s) => s.id !== id)));
 }
+
+// ---- schedule helpers
+
+const weekdayOf = (dateStr) => DAYS[new Date(`${dateStr}T12:00:00Z`).getUTCDay()];
+const shortTime = (hhmm) => fmtTime(hhmm).replace(':00', '');
+
+/** "Tuesdays, 6 PM and 7:30 PM" from the recurring slots in a list of occurrences. */
+export function scheduleLine(occurrences) {
+  const byDay = new Map();
+  for (const o of occurrences) {
+    if (!o.recurring) continue;
+    const day = weekdayOf(o.date);
+    if (!byDay.has(day)) byDay.set(day, new Set());
+    byDay.get(day).add(o.startTime);
+  }
+  return [...byDay]
+    .map(([day, times]) => `${day}s, ${[...times].sort().map(shortTime).join(' and ')}`)
+    .join('; ');
+}
+
+/** Group occurrences (already date/time sorted) into [{ date, slots: [...] }]. */
+export function groupByDate(occurrences) {
+  const out = [];
+  for (const o of occurrences) {
+    const last = out[out.length - 1];
+    if (last && last.date === o.date) last.slots.push(o);
+    else out.push({ date: o.date, slots: [o] });
+  }
+  return out;
+}
+
+export const slotKey = (o) => `${o.gameId}:${o.date}`;

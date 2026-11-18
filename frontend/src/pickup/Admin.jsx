@@ -193,7 +193,7 @@ function GameForm({ game, onSave }) {
 function DateRow({ o, onSet, onRemove }) {
   const [note, setNote] = useState(o.dateNote || '');
   return (
-    <div className={`pk-block pk-day${o.cancelled ? ' cancelled' : ''}`} data-date={o.date}>
+    <div className={`pk-block pk-day${o.cancelled ? ' cancelled' : ''}`} data-date={o.date} data-slot={`${o.date}T${o.startTime}`}>
       <div className="pk-day-head">
         <div>
           <p className="pk-day-date">{fmtDate(o.date, { weekday: 'long', month: 'short', day: 'numeric' })}</p>

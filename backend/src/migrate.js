@@ -86,11 +86,18 @@ const statements = [
     cancelled_at TIMESTAMPTZ
   )`,
   `CREATE INDEX IF NOT EXISTS pickup_rsvps_game_date_idx ON pickup_rsvps (game_id, game_date)`,
-  // Seed the recurring Tuesday 6pm game once (day_of_week 2 = Tuesday);
-  // editable from /admin afterwards.
+  // Seed two recurring Tuesday slots once (day_of_week 2 = Tuesday): 6 PM and a
+  // 7:30 PM placeholder. Both editable from /admin afterwards, so these only
+  // run against an empty table...
   `INSERT INTO pickup_games (title, location, recurring, day_of_week, start_time)
-   SELECT 'Pickup Soccer', 'McGuire Fields', true, 2, '18:00'
+   SELECT 'Pickup Soccer', 'McGuire Fields', true, 2, t
+   FROM (VALUES ('18:00'), ('19:30')) AS slots(t)
    WHERE NOT EXISTS (SELECT 1 FROM pickup_games)`,
+  // ...or add the 7:30 slot to a database seeded before it existed (only the
+  // original single 6 PM game present).
+  `INSERT INTO pickup_games (title, location, recurring, day_of_week, start_time)
+   SELECT 'Pickup Soccer', 'McGuire Fields', true, 2, '19:30'
+   WHERE (SELECT count(*) FROM pickup_games) = 1`,
 ];
 
 async function migrate() {

@@ -1,29 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DAYS, fmtDate, fmtTime, mySpots, pickupApi, removeSpot, saveSpot } from './pickupApi.js';
+import {
+  fmtDate,
+  fmtTime,
+  groupByDate,
+  mySpots,
+  pickupApi,
+  removeSpot,
+  saveSpot,
+  scheduleLine,
+  slotKey,
+} from './pickupApi.js';
 
 const SHOW_DATES = 4;
 const POLL_MS = 20000;
-// The sign-up sheet always shows at least this many numbered lines.
-const SHEET_LINES = 8;
+// Each featured slot's sign-up sheet shows at least this many numbered lines.
+const SHEET_LINES = 6;
 
 export const WAIVER_TEXT =
   "I'm playing at my own risk. This is a free, informal pickup game, not an organized event, " +
   'and I release Tether and its creator from liability for any injury.';
 
-// "Tuesdays, 6 PM" from the recurring games in the list.
-function scheduleLine(occurrences) {
-  const seen = new Map();
-  for (const o of occurrences) {
-    if (!o.recurring) continue;
-    const day = DAYS[new Date(`${o.date}T12:00:00Z`).getUTCDay()];
-    const key = `${day}|${o.startTime}`;
-    if (!seen.has(key)) seen.set(key, `${day}s, ${fmtTime(o.startTime).replace(':00', '')}`);
-  }
-  return [...seen.values()].join(' and ');
-}
-
-export default function PickupHome() {
+// /pickup/mcguire: the page the QR sign at the field points to.
+export default function McGuirePage() {
   const [occurrences, setOccurrences] = useState(null);
   const [error, setError] = useState('');
   const [spots, setSpots] = useState(mySpots);
@@ -33,7 +32,7 @@ export default function PickupHome() {
     pickupApi
       .games()
       .then((d) => {
-        setOccurrences(d.occurrences.slice(0, SHOW_DATES));
+        setOccurrences(d.occurrences);
         setError('');
       })
       .catch((e) => setError(e.message));
@@ -45,26 +44,22 @@ export default function PickupHome() {
     return () => clearInterval(t);
   }, [load]);
 
-  const mineFor = (o) =>
-    spots.find((s) => s.gameId === o.gameId && s.date === o.date && o.players.some((p) => p.id === s.id));
-  const dayProps = (o) => {
-    const key = `${o.gameId}:${o.date}`;
-    return {
-      o,
-      mine: mineFor(o),
-      formOpen: openKey === key,
-      onOpen: () => setOpenKey(openKey === key ? null : key),
-      onChanged: () => {
-        setSpots(mySpots());
-        setOpenKey(null);
-        load();
-      },
-    };
-  };
+  const slotProps = (o) => ({
+    o,
+    mine: spots.find((s) => s.gameId === o.gameId && s.date === o.date && o.players.some((p) => p.id === s.id)),
+    formOpen: openKey === slotKey(o),
+    onOpen: () => setOpenKey(openKey === slotKey(o) ? null : slotKey(o)),
+    onChanged: () => {
+      setSpots(mySpots());
+      setOpenKey(null);
+      load();
+    },
+  });
 
-  // Feature the next game that is actually on; the rest go in the list below.
-  const featured = occurrences?.find((o) => !o.cancelled) || occurrences?.[0];
-  const rest = occurrences?.filter((o) => o !== featured) || [];
+  const days = occurrences ? groupByDate(occurrences).slice(0, SHOW_DATES) : [];
+  // Feature the next date with at least one slot still on.
+  const featured = days.find((d) => d.slots.some((o) => !o.cancelled)) || days[0];
+  const rest = days.filter((d) => d !== featured);
   const schedule = occurrences ? scheduleLine(occurrences) : '';
 
   return (
@@ -82,13 +77,29 @@ export default function PickupHome() {
       {!occurrences && !error && <p className="pk-quiet">Loading&hellip;</p>}
       {occurrences?.length === 0 && <p className="pk-quiet">No games on the calendar right now. Check back soon.</p>}
 
-      {featured && <GameDay key={`${featured.gameId}:${featured.date}`} {...dayProps(featured)} featured />}
+      {featured && (
+        <section className="pk-next" aria-label="Next game day">
+          <p className="pk-label">Next game</p>
+          <p className="pk-day-date pk-next-date">
+            <span className="pk-weekday">{fmtDate(featured.date, { weekday: 'long' })}</span>
+            {fmtDate(featured.date, { month: 'short', day: 'numeric' })}
+          </p>
+          {featured.slots.map((o) => (
+            <Slot key={slotKey(o)} {...slotProps(o)} featured />
+          ))}
+        </section>
+      )}
 
       {rest.length > 0 && (
         <section className="pk-section">
           <h2 className="pk-h2">After that</h2>
-          {rest.map((o) => (
-            <GameDay key={`${o.gameId}:${o.date}`} {...dayProps(o)} />
+          {rest.map((d) => (
+            <div key={d.date} className="pk-later-day">
+              <p className="pk-day-date">{fmtDate(d.date, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+              {d.slots.map((o) => (
+                <Slot key={slotKey(o)} {...slotProps(o)} />
+              ))}
+            </div>
           ))}
         </section>
       )}
@@ -97,12 +108,16 @@ export default function PickupHome() {
         <h2 className="pk-h2">The basics</h2>
         <ul className="pk-basics">
           <li>It&rsquo;s free. No league, no refs, no fees.</li>
+          <li>Two games on Tuesdays. Pick one, or stay for both.</li>
           <li>Get there a few minutes early. We split teams on the spot.</li>
           <li>Bring a light shirt and a dark shirt, and water.</li>
           <li>Plans changed? Take your name off from this same phone.</li>
-          <li>Everyone plays. Keep it friendly.</li>
         </ul>
       </section>
+
+      <p className="pk-more">
+        <Link to="/">More pickup games and groups on Tether &rarr;</Link>
+      </p>
 
       <footer className="pk-footer">
         <p>Informal pickup game. Play at your own risk.</p>
@@ -114,7 +129,7 @@ export default function PickupHome() {
   );
 }
 
-function GameDay({ o, mine, formOpen, onOpen, onChanged, featured = false }) {
+function Slot({ o, mine, formOpen, onOpen, onChanged, featured = false }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -139,12 +154,8 @@ function GameDay({ o, mine, formOpen, onOpen, onChanged, featured = false }) {
   const cls = ['pk-day', featured ? 'featured' : 'compact', o.cancelled && 'cancelled', mine && 'mine']
     .filter(Boolean)
     .join(' ');
-  // Location is in the page title; only repeat it here when a game is somewhere else.
-  const where = [
-    fmtTime(o.startTime),
-    (featured || o.location !== 'McGuire Fields') && o.location,
-    o.title !== 'Pickup Soccer' && o.title,
-  ]
+  // Location is in the page title; only show it when a game is somewhere else.
+  const extra = [o.location !== 'McGuire Fields' && o.location, o.title !== 'Pickup Soccer' && o.title]
     .filter(Boolean)
     .join(' · ');
 
@@ -159,24 +170,16 @@ function GameDay({ o, mine, formOpen, onOpen, onChanged, featured = false }) {
     <RsvpForm o={o} onDone={onChanged} onClose={onOpen} />
   ) : (
     <button type="button" className="pk-btn pk-btn-go pk-in-btn" onClick={onOpen}>
-      I&rsquo;m in
+      I&rsquo;m in{featured ? ` for ${fmtTime(o.startTime)}` : ''}
     </button>
   );
 
   return (
-    <article className={cls} data-date={o.date}>
-      {featured && <p className="pk-label">Next game</p>}
+    <article className={cls} data-date={o.date} data-slot={`${o.date}T${o.startTime}`}>
       <div className="pk-day-head">
         <div className="pk-day-when">
-          {featured ? (
-            <p className="pk-day-date">
-              <span className="pk-weekday">{fmtDate(o.date, { weekday: 'long' })}</span>
-              {fmtDate(o.date, { month: 'short', day: 'numeric' })}
-            </p>
-          ) : (
-            <p className="pk-day-date">{fmtDate(o.date, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-          )}
-          <p className="pk-day-meta">{where}</p>
+          <p className="pk-slot-time">{fmtTime(o.startTime)}</p>
+          {extra && <p className="pk-day-meta">{extra}</p>}
         </div>
         <p className="pk-count" aria-label={`${o.count} playing`}>
           <span className="num">{o.count}</span>
@@ -217,7 +220,7 @@ function GameDay({ o, mine, formOpen, onOpen, onChanged, featured = false }) {
 function SignUpSheet({ o, mine }) {
   const lines = Math.max(SHEET_LINES, o.players.length + 2);
   return (
-    <ol className="pk-sheet" aria-label={`Who's playing ${fmtDate(o.date)}`}>
+    <ol className="pk-sheet" aria-label={`Who's playing ${fmtDate(o.date)} at ${fmtTime(o.startTime)}`}>
       {Array.from({ length: lines }, (_, i) => {
         const p = o.players[i];
         return (
@@ -240,10 +243,10 @@ function SignUpSheet({ o, mine }) {
 
 function RsvpForm({ o, onDone, onClose }) {
   const [name, setName] = useState(() => localStorage.getItem('pickup_name') || '');
-  const [contact, setContact] = useState('');
   const [waiver, setWaiver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const id = `${o.date}-${o.startTime.replace(':', '')}`;
 
   async function submit(e) {
     e.preventDefault();
@@ -252,13 +255,7 @@ function RsvpForm({ o, onDone, onClose }) {
     setBusy(true);
     setErr('');
     try {
-      const r = await pickupApi.rsvp({
-        gameId: o.gameId,
-        date: o.date,
-        name: name.trim(),
-        contact: contact.trim() || undefined,
-        waiverAccepted: true,
-      });
+      const r = await pickupApi.rsvp({ gameId: o.gameId, date: o.date, name: name.trim(), waiverAccepted: true });
       localStorage.setItem('pickup_name', name.trim());
       saveSpot({ id: r.id, gameId: o.gameId, date: o.date, token: r.cancelToken });
       onDone();
@@ -271,28 +268,16 @@ function RsvpForm({ o, onDone, onClose }) {
   return (
     <form className="pk-form" onSubmit={submit} noValidate>
       <div className="pk-field">
-        <label htmlFor={`name-${o.date}`}>Your name</label>
+        <label htmlFor={`name-${id}`}>Your name</label>
         <input
-          id={`name-${o.date}`}
+          id={`name-${id}`}
           value={name}
           maxLength={40}
           autoComplete="given-name"
           onChange={(e) => setName(e.target.value)}
           autoFocus
         />
-        <p className="pk-hint">First name is fine. Only your first name goes on the list.</p>
-      </div>
-      <div className="pk-field">
-        <label htmlFor={`contact-${o.date}`}>
-          Phone or email <span className="pk-optional">(optional, reminders only)</span>
-        </label>
-        <input
-          id={`contact-${o.date}`}
-          value={contact}
-          maxLength={120}
-          autoComplete="off"
-          onChange={(e) => setContact(e.target.value)}
-        />
+        <p className="pk-hint">First name is fine. That&rsquo;s all we ask for.</p>
       </div>
       <label className="pk-waiver">
         <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} />
@@ -301,7 +286,7 @@ function RsvpForm({ o, onDone, onClose }) {
       {err && <p className="pk-error">{err}</p>}
       <div className="pk-actions">
         <button type="submit" className="pk-btn pk-btn-go" disabled={busy || !waiver}>
-          {busy ? 'Saving…' : `Count me in for ${fmtDate(o.date, { weekday: 'short' })}`}
+          {busy ? 'Saving…' : `Count me in, ${fmtTime(o.startTime).replace(':00', '')}`}
         </button>
         <button type="button" className="pk-btn pk-btn-plain" onClick={onClose}>
           Not now

@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import PickupHome from './PickupHome.jsx';
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import TetherHome from './TetherHome.jsx';
+import McGuirePage from './McGuirePage.jsx';
+import { MCGUIRE_PATH } from '../flags.js';
 import Privacy from './Privacy.jsx';
 import Admin from './Admin.jsx';
 import SignPage from './SignPage.jsx';
@@ -21,7 +23,8 @@ function usePickupChrome() {
   }, []);
 }
 
-// The whole app while PICKUP_ONLY is on. No auth provider, no nav, no rooms.
+// Tether's app shell while PICKUP_ONLY is on: Tether brand + a light nav over
+// the pickup pages. Accounts, rooms, chat and AI stay paused behind the flag.
 export default function PickupApp() {
   usePickupChrome();
   const { pathname } = useLocation();
@@ -29,15 +32,24 @@ export default function PickupApp() {
 
   return (
     <div className={`pickup-shell${printable ? ' printable' : ''}`}>
-      {/* Home has its own masthead; other pages get a plain strip back to it. */}
-      {!printable && pathname !== '/' && (
-        <div className="pk-topbar">
-          <Link to="/">&larr; Pickup Soccer at McGuire Fields</Link>
-        </div>
+      {!printable && (
+        <header className="pk-topbar">
+          <Link to="/" className="pk-brand" aria-label="Tether home">
+            <i className="ti ti-flame" aria-hidden="true" />
+            Tether
+          </Link>
+          <nav className="pk-nav" aria-label="Tether">
+            <NavLink to="/" end>
+              Pickup games
+            </NavLink>
+            <NavLink to={MCGUIRE_PATH}>McGuire</NavLink>
+          </nav>
+        </header>
       )}
       <main className="pk-main">
         <Routes>
-          <Route path="/" element={<PickupHome />} />
+          <Route path="/" element={<TetherHome />} />
+          <Route path={MCGUIRE_PATH} element={<McGuirePage />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/sign" element={<SignPage />} />

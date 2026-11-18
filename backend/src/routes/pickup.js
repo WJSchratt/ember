@@ -77,7 +77,8 @@ router.post('/rsvps', async (req, res) => {
   const gameId = Number.parseInt(req.body?.gameId, 10) || 0;
   const date = clean(req.body?.date, 10);
   const name = clean(req.body?.name, 40);
-  const contact = clean(req.body?.contact, 120) || null;
+  // Name only: the contact column is kept for later but nothing is collected now.
+  const contact = null;
 
   if (req.body?.waiverAccepted !== true) {
     return res.status(400).json({ error: 'Please check the play-at-your-own-risk box to sign up.' });

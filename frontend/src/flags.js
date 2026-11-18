@@ -10,3 +10,7 @@ export const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || 'https://ember-web-
 
 // Shown on the privacy page as the deletion-request contact. Optional.
 export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || '';
+
+// The McGuire Fields sign-up sheet. The QR code and printed sign point here.
+export const MCGUIRE_PATH = '/pickup/mcguire';
+export const MCGUIRE_URL = `${PUBLIC_URL}${MCGUIRE_PATH}`;
