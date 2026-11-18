@@ -6,15 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "qr": "node scripts/make-qr.mjs",
+    "e2e": "node e2e/pickup.e2e.mjs"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "playwright": "^1.65.1",
     "vite": "^5.4.0"
   }
 }

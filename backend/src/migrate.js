@@ -51,6 +51,46 @@ const statements = [
     body TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
+  // ---- McGuire Fields pickup soccer (PICKUP_ONLY mode). Standalone tables
+  // with no FK to users: sign-ups are account-free by design.
+  `CREATE TABLE IF NOT EXISTS pickup_games (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT 'Pickup Soccer',
+    location TEXT NOT NULL DEFAULT 'McGuire Fields',
+    recurring BOOLEAN NOT NULL DEFAULT true,
+    day_of_week SMALLINT CHECK (day_of_week BETWEEN 0 AND 6),
+    start_time TEXT NOT NULL,
+    game_date DATE,
+    note TEXT,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS pickup_date_overrides (
+    game_id INTEGER NOT NULL REFERENCES pickup_games(id) ON DELETE CASCADE,
+    game_date DATE NOT NULL,
+    cancelled BOOLEAN NOT NULL DEFAULT false,
+    note TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (game_id, game_date)
+  )`,
+  `CREATE TABLE IF NOT EXISTS pickup_rsvps (
+    id SERIAL PRIMARY KEY,
+    game_id INTEGER NOT NULL REFERENCES pickup_games(id) ON DELETE CASCADE,
+    game_date DATE NOT NULL,
+    name TEXT NOT NULL,
+    contact TEXT,
+    waiver_accepted_at TIMESTAMPTZ NOT NULL,
+    cancel_token_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    cancelled_at TIMESTAMPTZ
+  )`,
+  `CREATE INDEX IF NOT EXISTS pickup_rsvps_game_date_idx ON pickup_rsvps (game_id, game_date)`,
+  // Seed the recurring Tuesday 6pm game once (day_of_week 2 = Tuesday);
+  // editable from /admin afterwards.
+  `INSERT INTO pickup_games (title, location, recurring, day_of_week, start_time)
+   SELECT 'Pickup Soccer', 'McGuire Fields', true, 2, '18:00'
+   WHERE NOT EXISTS (SELECT 1 FROM pickup_games)`,
 ];
 
 async function migrate() {

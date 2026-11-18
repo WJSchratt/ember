@@ -11,7 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, 'data');
 
 const db = new PGlite(dataDir);
-const server = new PGLiteSocketServer({ db, port: 5433, host: 'localhost' });
+const server = new PGLiteSocketServer({
+  db,
+  port: 5433,
+  host: 'localhost',
+  // Default is 1, but the app's pg pool opens up to 10; pglite-socket queues
+  // queries across connections, so allow the pool to connect concurrently.
+  maxConnections: 10,
+});
 
 await server.start();
 console.log('Dev Postgres (pglite) listening on postgres://localhost:5433');

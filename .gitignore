@@ -8,3 +8,5 @@ build/
 backend/dev-db/data/
 *.log
 .DS_Store
+frontend/e2e/screenshots/
+.env.*.local
