@@ -33,6 +33,17 @@ unset), `PICKUP_TZ` (backend, default `America/New_York`), `VITE_PUBLIC_URL`
 - `npm run qr` (in `frontend/`) writes `public/mcguire-pickup-qr.png`
   (also served at `/mcguire-pickup-qr.png`). `npm run qr -- <url> <out.png>` for another URL.
 
+## Look
+
+Light "park bulletin / team sheet" style, separate from the legacy dark theme
+(all styles scoped under `.pickup-shell` / `pk-*` in `frontend/src/pickup/pickup.css`).
+Barlow Condensed for headings, Source Sans 3 for body (Google Fonts, loaded only
+in pickup mode). Palette: chalk `#f5f2ea`, ink `#151515`, field green
+`#1d5c36`, goalie orange `#f2711c` (orange is only a fill under ink text, never
+text). Flat blocks and thin rules, no shadows or gradients. The next game is
+featured at the top with its count, the "I'm in" button and a numbered sign-up
+sheet. `/sign` is pure black on white for cheap printers and photocopies.
+
 ## Data (new tables only, created by `npm run migrate`)
 
 - `pickup_games`: schedule. Seeded once with a weekly Tuesday 18:00 game.
@@ -62,7 +73,8 @@ MODE=legacy BASE_URL=http://localhost:5173 npm run e2e
 ```
 
 Set `CHROMIUM_PATH` to reuse an installed Chromium instead of
-`npx playwright install chromium`. Screenshots go to `frontend/e2e/screenshots/`.
+`npx playwright install chromium`. Screenshots go to `frontend/e2e/screenshots/`. The run adds 6 sample sign-ups to the next game so the
+screenshots look like a real week, and removes them (plus its admin edits) at the end, even on failure.
 
 ## Deploy (manual, not done yet)
 

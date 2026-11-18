@@ -3,13 +3,13 @@ import { CONTACT_EMAIL } from '../flags.js';
 
 export default function Privacy() {
   return (
-    <div className="page pk-page pk-prose">
-      <Link to="/" className="back-link">
-        <i className="ti ti-arrow-left" aria-hidden="true" /> Back to game days
+    <div className="pk-page pk-prose">
+      <Link to="/" className="pk-back">
+        &larr; Back to the game list
       </Link>
       <h1 className="pk-title pk-title-sm">Privacy</h1>
 
-      <section className="card">
+      <section className="pk-block">
         <h2 className="pk-h2">What we store</h2>
         <ul>
           <li><strong>Your name</strong>, as you typed it. Only the first word is shown on the public list.</li>
@@ -22,13 +22,13 @@ export default function Privacy() {
             <strong>That you checked the play-at-your-own-risk box</strong>, with the time you checked it.
           </li>
         </ul>
-        <p className="muted">
+        <p className="pk-quiet">
           Your phone keeps a small random code (in this browser&rsquo;s local storage) so you can cancel
           your own spot without an account. No cookies, no tracking, no ads.
         </p>
       </section>
 
-      <section className="card">
+      <section className="pk-block">
         <h2 className="pk-h2">What we don&rsquo;t do</h2>
         <ul>
           <li>We never sell or share your information.</li>
@@ -36,7 +36,7 @@ export default function Privacy() {
         </ul>
       </section>
 
-      <section className="card">
+      <section className="pk-block">
         <h2 className="pk-h2">Deleting your info</h2>
         <p>
           Want your sign-ups removed?{' '}

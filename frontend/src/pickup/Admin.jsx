@@ -8,6 +8,7 @@ export default function Admin() {
   const [authed, setAuthed] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(
     (pc = passcode) =>
@@ -35,10 +36,10 @@ export default function Admin() {
 
   if (!authed) {
     return (
-      <div className="page pk-page">
+      <div className="pk-page">
         <h1 className="pk-title pk-title-sm">Admin</h1>
         <form
-          className="card"
+          className="pk-block"
           onSubmit={(e) => {
             e.preventDefault();
             sessionStorage.setItem(PC_KEY, passcode);
@@ -49,8 +50,8 @@ export default function Admin() {
             <label htmlFor="pc">Passcode</label>
             <input id="pc" type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} />
           </div>
-          {err && <p className="error">{err}</p>}
-          <button className="btn btn-primary" type="submit">Unlock</button>
+          {err && <p className="pk-error">{err}</p>}
+          <button className="pk-btn pk-btn-go" type="submit">Unlock</button>
         </form>
       </div>
     );
@@ -66,12 +67,12 @@ export default function Admin() {
   };
 
   return (
-    <div className="page pk-page">
+    <div className="pk-page">
       <div className="pk-admin-head">
         <h1 className="pk-title pk-title-sm">Admin</h1>
         <button
           type="button"
-          className="btn btn-ghost"
+          className="pk-btn pk-btn-plain"
           onClick={() => {
             sessionStorage.removeItem(PC_KEY);
             setPasscode('');
@@ -81,24 +82,29 @@ export default function Admin() {
           Lock
         </button>
       </div>
-      {err && <p className="error">{err}</p>}
-      <p className="muted">Times are field-local ({data.timezone}).</p>
+      {err && <p className="pk-error">{err}</p>}
+      <p className="pk-quiet">Times are field-local ({data.timezone}).</p>
 
-      <h2 className="section-title">Game schedule</h2>
-      {data.games.map((g) => (
+      <h2 className="pk-h2">Game schedule</h2>
+      {data.games.filter((g) => g.active || showInactive).map((g) => (
         <GameForm
           key={g.id}
           game={g}
           onSave={(body) => run(() => pickupApi.updateGame(passcode, g.id, body))}
         />
       ))}
+      {data.games.some((g) => !g.active) && (
+        <button type="button" className="pk-link-btn pk-toggle" onClick={() => setShowInactive(!showInactive)}>
+          {showInactive ? 'Hide' : 'Show'} inactive games ({data.games.filter((g) => !g.active).length})
+        </button>
+      )}
       <GameForm
         key={`new-${data.games.length}`}
         onSave={(body) => run(() => pickupApi.createGame(passcode, body))}
       />
 
-      <h2 className="section-title">Upcoming dates</h2>
-      {data.occurrences.length === 0 && <p className="muted">No upcoming dates.</p>}
+      <h2 className="pk-h2">Upcoming dates</h2>
+      {data.occurrences.length === 0 && <p className="pk-quiet">No upcoming dates.</p>}
       {data.occurrences.map((o) => (
         <DateRow
           key={`${o.gameId}:${o.date}`}
@@ -128,7 +134,7 @@ function GameForm({ game, onSave }) {
 
   return (
     <form
-      className={`card pk-admin-game${f.active ? '' : ' inactive'}`}
+      className={`pk-block pk-admin-game${f.active ? '' : ' inactive'}`}
       data-testid={isNew ? 'new-game' : `game-${game.id}`}
       onSubmit={(e) => {
         e.preventDefault();
@@ -179,7 +185,7 @@ function GameForm({ game, onSave }) {
         <label>Note (shown on every date)</label>
         <input value={f.note} onChange={set('note')} placeholder="e.g. Meet at the north field" aria-label="Note" />
       </div>
-      <button type="submit" className="btn btn-primary">{isNew ? 'Add game' : 'Save'}</button>
+      <button type="submit" className="pk-btn pk-btn-go">{isNew ? 'Add game' : 'Save'}</button>
     </form>
   );
 }
@@ -187,7 +193,7 @@ function GameForm({ game, onSave }) {
 function DateRow({ o, onSet, onRemove }) {
   const [note, setNote] = useState(o.dateNote || '');
   return (
-    <div className={`card pk-day${o.cancelled ? ' cancelled' : ''}`} data-date={o.date}>
+    <div className={`pk-block pk-day${o.cancelled ? ' cancelled' : ''}`} data-date={o.date}>
       <div className="pk-day-head">
         <div>
           <p className="pk-day-date">{fmtDate(o.date, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
@@ -205,10 +211,10 @@ function DateRow({ o, onSet, onRemove }) {
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder='Date note, e.g. "rained out"' aria-label="Date note" />
       </div>
       <div className="pk-actions">
-        <button type="button" className="btn btn-ghost" onClick={() => onSet({ cancelled: o.cancelled, note })}>
+        <button type="button" className="pk-btn pk-btn-plain" onClick={() => onSet({ cancelled: o.cancelled, note })}>
           Save note
         </button>
-        <button type="button" className="btn btn-primary" onClick={() => onSet({ cancelled: !o.cancelled, note })}>
+        <button type="button" className="pk-btn pk-btn-go" onClick={() => onSet({ cancelled: !o.cancelled, note })}>
           {o.cancelled ? 'Restore date' : 'Cancel this date'}
         </button>
       </div>
@@ -218,7 +224,7 @@ function DateRow({ o, onSet, onRemove }) {
             <li key={p.id}>
               <span>
                 {p.name}
-                {p.contact ? <span className="muted"> &middot; {p.contact}</span> : null}
+                {p.contact ? <span className="pk-quiet"> &middot; {p.contact}</span> : null}
               </span>
               <button type="button" className="pk-link-btn" onClick={() => window.confirm(`Remove ${p.name}?`) && onRemove(p.id)}>
                 Remove

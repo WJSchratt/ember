@@ -16,7 +16,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 const page = await ctx.newPage();
 page.on('dialog', (d) => d.accept());
-const shot = (name, full = true) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: full });
+const shot = async (name, full = true) => (await page.evaluate(() => document.fonts.ready.then(() => true)), page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: full }));
 const step = (s) => console.log(`- ${s}`);
 
 if (process.env.MODE === 'legacy') {
@@ -36,6 +36,22 @@ if (process.env.MODE === 'legacy') {
   process.exit(0);
 }
 
+// ---- sample sign-ups on the next game so screenshots look like a real week
+// (cancelled again at the end with their own tokens)
+const seeded = [];
+{
+  const g = await (await page.request.get(`${BASE}/api/pickup/games`)).json();
+  const next = g.occurrences.find((o) => !o.cancelled);
+  for (const name of ['Marco', 'Dana K', 'Theo', 'Priya', 'Sam', 'Jo']) {
+    const r = await page.request.post(`${BASE}/api/pickup/rsvps`, {
+      data: { gameId: next.gameId, date: next.date, name, waiverAccepted: true },
+    });
+    seeded.push(await r.json());
+  }
+}
+
+let date = null;
+try {
 // ---- home
 await page.goto(BASE);
 await page.getByRole('heading', { name: 'Pickup Soccer' }).waitFor();
@@ -43,12 +59,13 @@ const days = page.locator('article.pk-day');
 await days.first().waitFor();
 assert.ok((await days.count()) >= 3, 'shows the next few dates');
 assert.equal(await page.locator('.bottomnav').count(), 0, 'no legacy nav');
-step(`home shows ${await days.count()} game days, no legacy nav`);
+assert.ok((await page.locator('.pk-day.featured .pk-sheet li').count()) >= 8, 'next game shows a numbered sign-up sheet');
+step(`home shows ${await days.count()} game days (next one featured with sign-up sheet), no legacy nav`);
 await shot('01-home');
 
 // Use the second upcoming date so the test does not depend on today's game.
 const day = days.nth(1);
-const date = await day.getAttribute('data-date');
+date = await day.getAttribute('data-date');
 const countOf = async (d) => Number(await d.locator('.pk-count .num').innerText());
 const before = await countOf(day);
 
@@ -152,17 +169,27 @@ await page.setViewportSize({ width: 816, height: 1056 });
 await page.goto(`${BASE}/sign`);
 await page.locator('.pk-sign-qr').waitFor();
 await shot('09-sign');
+await page.emulateMedia({ media: 'print' });
+await shot('10-sign-print');
+await page.emulateMedia({ media: 'screen' });
 step('QR page + printable sign render');
 
-// ---- restore the seeded schedule so the run is repeatable
-const H = { 'x-admin-passcode': PASS };
-await page.request.patch(`${BASE}/api/pickup/admin/games/1`, { headers: H, data: { startTime: '18:00', note: '' } });
-await page.request.put(`${BASE}/api/pickup/admin/games/1/dates/${date}`, { headers: H, data: { cancelled: false } });
-const all = await (await page.request.get(`${BASE}/api/pickup/admin/games`, { headers: H })).json();
-for (const g of all.games.filter((g) => g.id !== 1 && g.active)) {
-  await page.request.patch(`${BASE}/api/pickup/admin/games/${g.id}`, { headers: H, data: { active: false } });
+} finally {
+  // ---- restore the seeded schedule so the run is repeatable
+  const H = { 'x-admin-passcode': PASS };
+  await page.request.patch(`${BASE}/api/pickup/admin/games/1`, { headers: H, data: { startTime: '18:00', note: '' } });
+  if (date) await page.request.put(`${BASE}/api/pickup/admin/games/1/dates/${date}`, { headers: H, data: { cancelled: false } });
+  const all = await (await page.request.get(`${BASE}/api/pickup/admin/games`, { headers: H })).json();
+  for (const g of all.games.filter((g) => g.id !== 1 && g.active)) {
+    await page.request.patch(`${BASE}/api/pickup/admin/games/${g.id}`, { headers: H, data: { active: false } });
+  }
+  step('restored seed schedule, removed sample sign-ups');
+  for (const s of seeded) {
+    await page.request.delete(`${BASE}/api/pickup/rsvps/${s.id}`, { data: { cancelToken: s.cancelToken } });
+  }
 }
-step('restored seed schedule');
+
+
 
 await browser.close();
 console.log('ALL PICKUP CHECKS PASSED');
